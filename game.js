@@ -1,11 +1,11 @@
 // ============================================================
 // カードバトル game.js
-// Version : 1.4.0
+// Version : 1.4.2
 // Updated : 2025-06-30
 // ============================================================
 
 // ============================================================
-// game.js  —  ゲームロジック
+// game.js  ?  ゲームロジック
 // ============================================================
 
 const PHASE = {
@@ -275,12 +275,13 @@ class GameEngine {
     if (active.attachedEnergy.length < cost) return this._err(`にげるには ${cost} 個のエネルギーが必要です`);
     const bi = s.bench.findIndex(c => c.uid === benchUid);
     if (bi === -1) return this._err("ベンチのポケモンを選んでください");
-    active.attachedEnergy.splice(0, cost);
+    const removedEnergy = active.attachedEnergy.splice(0, cost);
+    s.discard.push(...removedEnergy);
     const newActive = s.bench.splice(bi, 1)[0];
     s.bench.push(active);
     s.active = newActive;
     this.state.turnFlags.retreated = true;
-    this._log(`${active.name} がにげて、${newActive.name} がバトル場に出た！`);
+    this._log(`${active.name} がにげて、${newActive.name} がバトル場に出た！（エネルギー${cost}個をトラッシュ）`);
     this._notify();
   }
 
@@ -1156,7 +1157,14 @@ class GameEngine {
     if (active.damage < GameEngine.maxHp(active)) return;
 
     this._log(`${active.name} は気絶した！`);
-    s.discard.push(active);
+    // 付随していたエネルギー・道具もトラッシュへ
+    if (active.attachedEnergy && active.attachedEnergy.length > 0) {
+      s.discard.push(...active.attachedEnergy);
+    }
+    if (active.attachedTool) {
+      s.discard.push(active.attachedTool);
+    }
+    s.discard.push({ ...active, attachedEnergy: undefined, attachedTool: undefined });
     s.active = null;
 
     // サイド取得（eXは2枚）
@@ -1189,9 +1197,15 @@ class GameEngine {
   searchPokemonFromDeck(cardUid) {
     if (this.state.phase !== PHASE.WAIT_ONSEN_SEARCH) return;
     const s   = this.state.player;
+    const ctx = this.state.pendingContext;
+    if (ctx && ctx.candidates && !ctx.candidates.some(c => c.uid === cardUid))
+      return this._err("選択できるのは山札のポケモンのみです");
     const idx = s.deck.findIndex(c => c.uid === cardUid);
     if (idx === -1) return this._err("山札にそのカードはありません");
-    const card = s.deck.splice(idx, 1)[0];
+    const card = s.deck[idx];
+    if (card.cardType !== "pokemon" || !card.id || !card.id.startsWith("p"))
+      return this._err("選択できるのはポケモンカードのみです");
+    s.deck.splice(idx, 1);
     s.hand.push(card);
     s.deck = this._shuffle(s.deck);
     this._log(`${card.name} を手札に加えた。山札をシャッフルした。`);
@@ -1205,7 +1219,7 @@ class GameEngine {
   // 温泉街への集客：ワザ使用後にサーチモードへ
   startOnsenSearch() {
     this._log(`温泉街への集客：山札からポケモンを1枚選んでください。`);
-    const pokemons = this.state.player.deck.filter(c => c.cardType !== "energy");
+    const pokemons = this.state.player.deck.filter(c => c.cardType === "pokemon" && c.id && c.id.startsWith("p"));
     this.state.pendingContext = { type: "onsen_search", candidates: pokemons };
     this.state.phase = PHASE.WAIT_ONSEN_SEARCH;
     this._notify();
@@ -1238,7 +1252,7 @@ class GameEngine {
   _endGame(winner) {
     this.state.phase  = PHASE.GAME_OVER;
     this.state.winner = winner;
-    this._log(winner === "player" ? "🎉 あなたの勝ちです！" : "💀 CPUの勝ちです…");
+    this._log(winner === "player" ? "  あなたの勝ちです！" : "  CPUの勝ちです…");
   }
 
   _log(msg) {
@@ -1247,7 +1261,7 @@ class GameEngine {
   }
 
   _err(msg) {
-    this._log(`⚠️ ${msg}`);
+    this._log(`?? ${msg}`);
     this._notify();
     return false;
   }
