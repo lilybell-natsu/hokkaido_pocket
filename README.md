@@ -8,6 +8,13 @@
 GitHub Pages URL をスマートフォンのブラウザで開き、  
 「ホーム画面に追加」でPWAとしてインストールできます。
 
+### GitHub Pages 設定方法
+
+1. リポジトリの **Settings → Pages**
+2. **Build and deployment → Source** を「**Deploy from a branch**」に設定
+3. **Branch** を `main` / `/(root)` に設定して Save
+4. `main` ブランチに push すると数分で自動反映されます
+
 ## ファイル構成
 
 ```
@@ -26,9 +33,9 @@ GitHub Pages URL をスマートフォンのブラウザで開き、
 
 ```
 Version : X.Y.Z
-  X — メジャー：ルール・アーキテクチャの大幅変更
-  Y — マイナー：新機能・カード追加
-  Z — パッチ  ：バグ修正・UI微調整
+  X ? メジャー：ルール・アーキテクチャの大幅変更
+  Y ? マイナー：新機能・カード追加
+  Z ? パッチ  ：バグ修正・UI微調整
 ```
 
 ## 実装済みカード
