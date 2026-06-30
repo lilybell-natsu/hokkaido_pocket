@@ -1,6 +1,6 @@
 <!-- ============================================================
      カードバトル index.html
-     Version : 1.9.3
+     Version : 1.9.4
      Updated : 2025-06-30
      ============================================================ -->
 <!DOCTYPE html>
@@ -408,7 +408,10 @@
   <!-- スタジアム表示 -->
   <div id="stadium-area" style="display:none;padding:4px 0">
     <div class="zone-label">スタジアム</div>
-    <div id="stadium-display" style="font-size:11px;color:var(--purple);font-weight:600;padding:4px 8px;background:var(--card-bg);border:1px solid var(--purple);border-radius:6px;display:inline-block"></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div id="stadium-display" onclick="ui.openStadiumPreview()" style="cursor:pointer;font-size:11px;color:var(--purple);font-weight:600;padding:4px 8px;background:var(--card-bg);border:1px solid var(--purple);border-radius:6px;display:inline-block"></div>
+      <div id="stadium-desc" style="font-size:10px;color:var(--muted);line-height:1.4;flex:1;min-width:140px"></div>
+    </div>
   </div>
 
   <hr class="field-divider">
@@ -697,6 +700,21 @@
   </div>
 </div>
 
+<!-- スタジアム：カード画像プレビューモーダル -->
+<div class="modal-overlay" id="stadium-preview-modal">
+  <div class="modal-box" style="text-align:center">
+    <div class="hand-card" style="width:180px;margin:0 auto">
+      <img id="stadium-preview-img" src="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
+      <div class="hand-card-placeholder" style="display:none"> </div>
+    </div>
+    <p id="stadium-preview-name" style="font-size:13px;color:var(--text);font-weight:600;margin-top:8px"></p>
+    <p id="stadium-preview-desc" style="font-size:11px;color:var(--muted);line-height:1.5;margin-top:4px"></p>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="ui.closeStadiumPreview()">戻る</button>
+    </div>
+  </div>
+</div>
+
 <!-- ゲームスタートオーバーレイ -->
 <div class="modal-overlay" id="overlay">
   <div class="modal-box" style="text-align:center;align-items:center">
@@ -770,6 +788,8 @@ const ui = (() => {
         ? TRAINER_CARDS.find(c => c.effectKey === s.stadium) : null;
       document.getElementById("stadium-display").textContent =
         stadiumCard ? `  ${stadiumCard.name}` : `  ${s.stadium}`;
+      document.getElementById("stadium-desc").textContent =
+        stadiumCard ? stadiumCard.description || "" : "";
       stadiumArea.style.display = "block";
     } else {
       stadiumArea.style.display = "none";
@@ -1038,9 +1058,8 @@ const ui = (() => {
       const el = document.getElementById(id);
       if (el) el.classList.remove("show");
     });
-    // 手札にカードを戻す（game.jsで既に手から除いている場合はサーバー側で戻す）
     clearSel();
-    if (state) render(state);
+    if (engine && typeof engine.cancelTrainer === "function") engine.cancelTrainer();
   }
 
   // ── ターゲット選択モーダル（自分のポケモン対象） ──
@@ -1212,7 +1231,8 @@ const ui = (() => {
         content_el.innerHTML = "";
         btns_el.innerHTML = `
           <button class="btn primary" onclick="ui.onHanabiAnswer(true)">行った！</button>
-          <button class="btn ghost"   onclick="ui.onHanabiAnswer(false)">行っていない</button>`;
+          <button class="btn ghost"   onclick="ui.onHanabiAnswer(false)">行っていない</button>
+          <button class="btn ghost"   onclick="ui.onTrainerCancel()">キャンセル</button>`;
         break;
 
       case "yasuda_peek":
@@ -1782,6 +1802,20 @@ const ui = (() => {
   }
   function closeTrashPreview() { document.getElementById("trash-preview-modal").classList.remove("show"); }
 
+  // ── スタジアム カード詳細プレビュー ──
+  function openStadiumPreview() {
+    if (!state || !state.stadium) return;
+    const card = typeof TRAINER_CARDS !== "undefined"
+      ? TRAINER_CARDS.find(c => c.effectKey === state.stadium) : null;
+    document.getElementById("stadium-preview-img").src = card?.image || "";
+    document.getElementById("stadium-preview-img").style.display = "";
+    document.getElementById("stadium-preview-img").nextElementSibling.style.display = "none";
+    document.getElementById("stadium-preview-name").textContent = card?.name || state.stadium;
+    document.getElementById("stadium-preview-desc").textContent = card?.description || "";
+    document.getElementById("stadium-preview-modal").classList.add("show");
+  }
+  function closeStadiumPreview() { document.getElementById("stadium-preview-modal").classList.remove("show"); }
+
   // ── オーバーレイ ──
   function showOverlay(title, msg) {
     document.getElementById("overlay-title").textContent = title;
@@ -1811,6 +1845,7 @@ const ui = (() => {
     showZoomByCard, showZoomByLive, closeZoom,
     openSearchModal, onSearchSelect, closeSearchModal,
     openTrashModal, closeTrashModal, openTrashPreview, closeTrashPreview,
+    openStadiumPreview, closeStadiumPreview,
   };
 })();
 
