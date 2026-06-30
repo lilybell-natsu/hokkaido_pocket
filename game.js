@@ -1,11 +1,11 @@
 // ============================================================
 // カードバトル game.js
-// Version : 1.4.3
+// Version : 1.4.4
 // Updated : 2025-06-30
 // ============================================================
 
 // ============================================================
-// game.js  ?  ゲームロジック
+// game.js  —  ゲームロジック
 // ============================================================
 
 const PHASE = {
@@ -465,7 +465,7 @@ class GameEngine {
     const lockedTypes = [
       "kanabo_color", "yakitori_price", "yakisoba_check",
       "nippon_steel_bonus", "nippon_steel_bench_energy", "nippon_steel_bench_energy_select",
-      "yasuda_peek",
+      "yasuda_peek", "hakucho_stage2_search",
     ];
     if (lockedTypes.includes(ctx.type)) return this._err("効果が既に発動しているためキャンセルできません");
     const s = this.state.player;
@@ -1279,7 +1279,7 @@ class GameEngine {
   _endGame(winner) {
     this.state.phase  = PHASE.GAME_OVER;
     this.state.winner = winner;
-    this._log(winner === "player" ? "  あなたの勝ちです！" : "  CPUの勝ちです…");
+    this._log(winner === "player" ? "🎉 あなたの勝ちです！" : "💀 CPUの勝ちです…");
   }
 
   _log(msg) {
@@ -1288,7 +1288,7 @@ class GameEngine {
   }
 
   _err(msg) {
-    this._log(`?? ${msg}`);
+    this._log(`⚠️ ${msg}`);
     this._notify();
     return false;
   }
