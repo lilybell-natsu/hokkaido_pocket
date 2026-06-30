@@ -1,6 +1,6 @@
 <!-- ============================================================
      カードバトル index.html
-     Version : 1.9.2
+     Version : 1.9.3
      Updated : 2025-06-30
      ============================================================ -->
 <!DOCTYPE html>
@@ -1105,6 +1105,7 @@ const ui = (() => {
       hakucho_stage2_search: "山札から2進化ポケモンを選ぶ",
       washi_shrine_select:   `トラッシュから3枚選ぶ（${ctx.selected?.length || 0}/3枚選択中）`,
       nippon_steel:          "トラッシュからエネルギーを選ぶ（バトル場に付けます）",
+      nippon_steel_bench_energy_select: "トラッシュからエネルギーを選ぶ（ベンチに付けます）",
     };
     document.getElementById("trainer-select-title").textContent = titles[ctx.type] || "カードを選ぶ";
     document.getElementById("trainer-select-desc").textContent  =
@@ -1137,6 +1138,9 @@ const ui = (() => {
       case "hakucho_stage2_search": engine.hakuchoBridgeSelect(uid);  break;
       case "washi_shrine_select":   engine.washiShrineSelect(uid);    break;
       case "nippon_steel":          engine.nipponSteelSelectEnergy(uid, "player"); break;
+      case "nippon_steel_bench_energy_select":
+        engine.nipponSteelBenchEnergyAttach(ctx._benchTarget, uid);
+        break;
     }
   }
 
