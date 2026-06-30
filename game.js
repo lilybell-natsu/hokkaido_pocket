@@ -1,6 +1,6 @@
 // ============================================================
 // カードバトル game.js
-// Version : 1.4.2
+// Version : 1.4.3
 // Updated : 2025-06-30
 // ============================================================
 
@@ -449,6 +449,33 @@ class GameEngine {
     this.state.pendingContext = null;
     if (this.state.phase === PHASE.GAME_OVER) { this._notify(); return; }
     this._afterAttack();
+  }
+
+  // ----------------------------------------------------------
+  // トレーナーズ使用キャンセル（手札に戻す）
+  // ----------------------------------------------------------
+  cancelTrainer() {
+    const waitPhases = [
+      PHASE.WAIT_TRAINER_TARGET, PHASE.WAIT_TRAINER_SELECT,
+      PHASE.WAIT_TRAINER_ANSWER, PHASE.WAIT_TRAINER_BENCH_SELECT,
+    ];
+    if (!waitPhases.includes(this.state.phase)) return this._err("キャンセルできる状態ではありません");
+    const ctx = this.state.pendingContext;
+    if (!ctx || !ctx.card) return this._err("キャンセルできない処理です（既に確定済み）");
+    const lockedTypes = [
+      "kanabo_color", "yakitori_price", "yakisoba_check",
+      "nippon_steel_bonus", "nippon_steel_bench_energy", "nippon_steel_bench_energy_select",
+      "yasuda_peek",
+    ];
+    if (lockedTypes.includes(ctx.type)) return this._err("効果が既に発動しているためキャンセルできません");
+    const s = this.state.player;
+    s.hand.push(ctx.card);
+    // サポート使用フラグを戻す
+    if (ctx.card.trainerType === "support") this.state.turnFlags.supportUsed = false;
+    this._log(`${ctx.card.name} の使用をキャンセルし、手札に戻した。`);
+    this.state.pendingContext = null;
+    this.state.phase = PHASE.PLAYER_TURN;
+    this._notify();
   }
 
   // ----------------------------------------------------------
