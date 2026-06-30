@@ -1,0 +1,1741 @@
+<!-- ============================================================
+     カードバトル index.html
+     Version : 1.9.1
+     Updated : 2025-06-30
+     ============================================================ -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ホッカイドゥエル カードバトル</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0e1a2b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HDuel">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    --bg:      #0e1a2b;
+    --surface: #162032;
+    --card-bg: #1c2d42;
+    --border:  #2a3f5c;
+    --accent:  #e8a020;
+    --accent2: #3a9bdc;
+    --red:     #e05050;
+    --green:   #4caf7d;
+    --purple:  #9b7fd4;
+    --text:    #e8eaf0;
+    --muted:   #7a9ab8;
+    --font:    'Segoe UI', system-ui, sans-serif;
+    /* スマホ縦画面の固定エリア高さ */
+    --header-h:  48px;
+    --action-h:  52px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--font); font-size: 13px;
+    display: flex; flex-direction: column;
+    width: 100%; max-width: 430px; margin: 0 auto;
+    height: 100dvh;
+  }
+
+  /* ── ヘッダー ── */
+  header {
+    flex-shrink: 0;
+    height: var(--header-h);
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 40;
+  }
+  header h1 { font-size: 15px; color: var(--accent); }
+  #turn-label {
+    background: var(--accent); color: #000;
+    font-weight: 700; font-size: 11px; padding: 3px 10px; border-radius: 20px;
+  }
+  #header-btns { display: flex; gap: 6px; align-items: center; }
+  .hbtn {
+    background: var(--card-bg); border: 1px solid var(--border);
+    color: var(--text); font-size: 11px; padding: 4px 8px;
+    border-radius: 6px; cursor: pointer; touch-action: manipulation;
+  }
+  .hbtn:disabled { opacity: .35; cursor: not-allowed; }
+  #btn-end.hbtn { background: var(--red); color: #fff; border-color: var(--red); }
+
+  /* ── フィールド（スクロール可能エリア） ── */
+  #field {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 8px;
+    display: flex; flex-direction: column; gap: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── ゾーンラベル ── */
+  .zone-label {
+    font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .08em;
+    margin-bottom: 3px;
+  }
+  .field-divider { border: none; border-top: 1px dashed var(--border); }
+
+  /* ── バトル場＋ベンチ横並び ── */
+  .field-area {
+    display: flex; flex-direction: row; gap: 8px; align-items: flex-start;
+  }
+  .field-active-wrap { flex-shrink: 0; display: flex; flex-direction: column; gap: 3px; }
+  .field-bench-wrap  { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .field-sublabel { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+
+  /* ── ポケモンスロット ── */
+  .poke-slot {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px;
+    cursor: pointer; transition: border-color .12s; position: relative;
+    touch-action: manipulation;
+  }
+  .poke-slot.selected     { border-color: var(--accent); box-shadow: 0 0 0 2px #e8a02044; }
+  .poke-slot.cpu-zone     { cursor: default; }
+  .poke-slot.bench-target { border-color: var(--red); box-shadow: 0 0 0 2px #e0505055; }
+
+  /* バトル場カード：スマホ幅に合わせた固定幅 */
+  .active-card { width: 100px; }
+  /* ベンチカード */
+  .bench-slot { width: 100%; }
+
+  .poke-img {
+    width: 100%; aspect-ratio: 2/3; object-fit: cover;
+    border-radius: 4px; background: var(--surface); display: block;
+  }
+  .poke-img-placeholder {
+    width: 100%; aspect-ratio: 2/3; background: var(--surface);
+    border-radius: 4px; display: flex; align-items: center;
+    justify-content: center; font-size: 24px; color: var(--muted);
+  }
+  .poke-name {
+    font-size: 9px; font-weight: 600; margin-top: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+  .poke-ex-badge {
+    display: inline-block; background: var(--purple); color: #fff;
+    font-size: 7px; font-weight: 700; padding: 1px 3px; border-radius: 2px; margin-left: 2px;
+  }
+
+  .hp-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 3px; overflow: hidden; }
+  .hp-fill { height: 100%; border-radius: 2px; background: var(--green); }
+  .hp-fill.mid { background: var(--accent); }
+  .hp-fill.low { background: var(--red); }
+  .hp-text { font-size: 8px; color: var(--muted); margin-top: 1px; }
+
+  .energy-row { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 3px; }
+  .energy-pip {
+    width: 13px; height: 13px; border-radius: 50%;
+    font-size: 7px; display: flex; align-items: center; justify-content: center; font-weight: 700;
+  }
+
+  .ability-badge {
+    margin-top: 3px; background: var(--purple); color: #fff;
+    font-size: 8px; padding: 1px 4px; border-radius: 3px;
+    display: inline-block; cursor: pointer; line-height: 1.5;
+  }
+  .ability-badge.used { background: var(--border); color: var(--muted); }
+
+  .bench-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+
+  /* ── サイドカード ── */
+  .prize-row { display: flex; gap: 3px; flex-wrap: wrap; }
+  .prize-chip { width: 16px; height: 22px; background: var(--accent2); border-radius: 2px; opacity: .8; }
+  .prize-chip.taken { background: var(--border); opacity: .4; }
+
+  /* ── 手札エリア（ベンチ右に配置） ── */
+  #hand-bar {
+    display: none; /* hand-barは非表示、代わりに#hand-areaを使用 */
+  }
+  #hand-area {
+    display: flex; flex-direction: column; gap: 3px;
+    min-width: 0;
+  }
+  #hand-bar-header { display: flex; align-items: center; gap: 4px; }
+  #hand-bar-header h3 { font-size: 10px; color: var(--muted); }
+  #hand-count-label { font-size: 9px; color: var(--muted); }
+  #hand-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+    overflow-y: auto;
+    max-height: 280px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .hand-card {
+    width: 100%;
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 3px; cursor: pointer;
+    text-align: center; transition: border-color .12s; position: relative;
+    touch-action: manipulation;
+  }
+  .hand-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px #e8a02044; }
+  .hand-card img {
+    width: 100%; aspect-ratio: 2/3; object-fit: cover;
+    border-radius: 2px; background: var(--bg); display: block;
+  }
+  .hand-card-placeholder {
+    width: 100%; aspect-ratio: 2/3; background: var(--bg);
+    border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+  .hand-card-name { margin-top: 2px; color: var(--text); line-height: 1.2; font-size: 7px; }
+  .hbadge {
+    position: absolute; top: 2px; right: 2px;
+    background: var(--accent); color: #000; font-size: 6px; font-weight: 700;
+    padding: 1px 2px; border-radius: 2px;
+  }
+
+  /* ── 行動ボタンバー（固定） ── */
+  #action-bar {
+    flex-shrink: 0;
+    height: var(--action-h);
+    background: #0e1a2bef; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 4px;
+    padding: 0 6px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .action-btn {
+    flex-shrink: 0; height: 36px; padding: 0 11px;
+    border: none; border-radius: 7px; cursor: pointer;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+    touch-action: manipulation;
+    transition: filter .12s, opacity .12s;
+  }
+  .action-btn:disabled { opacity: .3; cursor: not-allowed; }
+  .action-btn:not(:disabled):active { filter: brightness(1.2); }
+  .action-btn.primary { background: var(--accent);  color: #000; }
+  .action-btn.blue    { background: var(--accent2); color: #fff; }
+  .action-btn.ghost   { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); }
+  .action-btn.danger  { background: var(--red);     color: #fff; }
+  .move-action-btn {
+    flex-shrink: 0; height: 36px; padding: 0 10px;
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 7px; cursor: pointer; color: var(--text);
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+    display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+    touch-action: manipulation;
+  }
+  .move-action-btn:disabled { opacity: .3; }
+  .move-action-btn:not(:disabled):active { border-color: var(--accent); }
+  .move-action-dmg { font-size: 9px; color: var(--accent); }
+  .side-counter {
+    flex-shrink: 0;
+    display: flex; align-items: center;
+    background: var(--card-bg); border: 1px solid var(--accent2);
+    border-radius: 7px; padding: 0 8px; height: 36px;
+    font-size: 12px; font-weight: 700; color: var(--accent2);
+    white-space: nowrap;
+  }
+
+  /* ── 共通ボタン ── */
+  .btn {
+    padding: 10px 18px; border: none; border-radius: 8px;
+    cursor: pointer; font-size: 14px; font-weight: 600;
+    touch-action: manipulation;
+  }
+  .btn.primary { background: var(--accent);  color: #000; }
+  .btn.blue    { background: var(--accent2); color: #fff; }
+  .btn.ghost   { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); }
+  .btn.danger  { background: var(--red);     color: #fff; }
+  .btn.purple  { background: var(--purple);  color: #fff; }
+
+  .empty-slot {
+    background: var(--card-bg); border: 1px dashed var(--border);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 9px; aspect-ratio: 2/3; width: 100%;
+  }
+
+  /* ── モーダル共通 ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: #000c; z-index: 100;
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px;
+    width: 100%; max-width: 400px;
+    display: flex; flex-direction: column; gap: 12px;
+    max-height: 85vh; overflow-y: auto;
+  }
+  .modal-box h3 { font-size: 16px; color: var(--accent); }
+  .modal-box p  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .modal-btns   { display: flex; gap: 8px; flex-wrap: wrap; }
+  .modal-btns .btn { flex: 1; min-width: 100px; text-align: center; }
+
+  /* ── バトルログ ── */
+  #log-list { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+  .log-entry { padding: 4px 0; border-bottom: 1px solid #2a3f5c44; color: var(--text); }
+  .log-entry:first-child { color: var(--accent); font-weight: 600; }
+
+  /* ── サーチモーダル ── */
+  .modal-card-list { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* ── ドローポップアップ ── */
+  #draw-popup {
+    display: none; position: fixed; inset: 0;
+    background: #000d; z-index: 200;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  #draw-popup.show { display: flex; }
+  .draw-box {
+    background: var(--surface); border: 2px solid var(--accent);
+    border-radius: 20px; padding: 28px 24px;
+    text-align: center; display: flex; flex-direction: column;
+    gap: 14px; align-items: center; width: 100%; max-width: 320px;
+  }
+  .draw-box h2 { font-size: 20px; color: var(--accent); }
+  .draw-box p  { font-size: 13px; color: var(--muted); }
+  .draw-box .btn { width: 100%; font-size: 16px; padding: 14px; }
+
+  /* ── カード拡大表示 ── */
+  #card-zoom-modal {
+    display: none; position: fixed; inset: 0;
+    background: #000e; z-index: 300;
+    align-items: center; justify-content: center; padding: 12px;
+  }
+  #card-zoom-modal.show { display: flex; }
+  #card-zoom-box {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    width: 100%; max-width: 320px; max-height: 90vh; overflow-y: auto;
+  }
+  #card-zoom-img {
+    width: 100%; max-width: 280px; aspect-ratio: 2/3; object-fit: cover;
+    border-radius: 14px; box-shadow: 0 6px 32px #0009; background: var(--card-bg);
+  }
+  #card-zoom-placeholder {
+    display: none; width: 100%; max-width: 280px; aspect-ratio: 2/3;
+    background: var(--card-bg); border-radius: 14px;
+    align-items: center; justify-content: center; font-size: 72px;
+  }
+  #card-zoom-info {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px; width: 100%;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  #card-zoom-name  { font-size: 15px; font-weight: 700; }
+  #card-zoom-meta  { font-size: 11px; color: var(--muted); }
+  #card-zoom-hp    { font-size: 13px; font-weight: 600; }
+  #card-zoom-moves { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  .zoom-move { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .zoom-move-name { font-size: 13px; font-weight: 600; }
+  .zoom-move-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .zoom-move-desc { font-size: 11px; color: var(--accent); margin-top: 3px; line-height: 1.5; }
+  #card-zoom-ability {
+    background: #2a1a4a; border: 1px solid var(--purple);
+    border-radius: 8px; padding: 8px 10px;
+  }
+  .zoom-ability-name { font-size: 12px; font-weight: 600; color: var(--purple); }
+  .zoom-ability-desc { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+  #card-zoom-close {
+    width: 100%; padding: 12px; background: var(--card-bg);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+
+
+  /* ── ズームボタン ── */
+  .zoom-btn {
+    position: absolute; top: 3px; left: 3px;
+    background: #000a; color: #fff; border: none;
+    border-radius: 4px; font-size: 10px; padding: 1px 4px;
+    cursor: pointer; line-height: 1.4; z-index: 5;
+    touch-action: manipulation;
+  }
+  .zoom-btn:active { background: #000d; }
+  ::-webkit-scrollbar { width: 3px; height: 3px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header>
+  <h1>⚔️ カードバトル</h1>
+  <div id="header-btns">
+    <span id="turn-label">準備中</span>
+    <button class="hbtn" id="btn-end" disabled onclick="ui.onEndTurn()">ターン終了</button>
+    <button class="hbtn" onclick="ui.showLog()">📋 ログ</button>
+  </div>
+</header>
+
+<!-- フィールド（スクロール） -->
+<div id="field">
+  <!-- CPU側 -->
+  <div>
+    <div class="zone-label">CPU バトル場 &amp; ベンチ</div>
+    <div class="field-area">
+      <div class="field-active-wrap">
+        <div class="field-sublabel">バトル場</div>
+        <div id="cpu-active-wrap"></div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px">
+          デッキ:<span id="cpu-deck-count">—</span> 手札:<span id="cpu-hand-count">—</span>
+        </div>
+      </div>
+      <div class="field-bench-wrap">
+        <div class="field-sublabel">ベンチ</div>
+        <div class="bench-row" id="cpu-bench"></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="field-divider">
+
+  <!-- スタジアム表示 -->
+  <div id="stadium-area" style="display:none;padding:4px 0">
+    <div class="zone-label">スタジアム</div>
+    <div id="stadium-display" style="font-size:11px;color:var(--purple);font-weight:600;padding:4px 8px;background:var(--card-bg);border:1px solid var(--purple);border-radius:6px;display:inline-block"></div>
+  </div>
+
+  <hr class="field-divider">
+
+  <!-- プレイヤー側 -->
+  <div>
+    <div class="zone-label">あなた バトル場 &amp; ベンチ &amp; 手札</div>
+    <!-- バトル場＋ベンチ＋手札を横並び -->
+    <div style="display:flex;flex-direction:row;gap:6px;align-items:flex-start">
+      <!-- バトル場 -->
+      <div class="field-active-wrap">
+        <div class="field-sublabel">バトル場</div>
+        <div id="player-active-wrap"></div>
+        <div style="font-size:8px;color:var(--muted);margin-top:2px">
+          <span id="player-deck-count">—</span>枚
+        </div>
+      </div>
+      <!-- ベンチ（縦並び） -->
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+        <div class="field-sublabel">ベンチ</div>
+        <div id="player-bench" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px"></div>
+      </div>
+      <!-- 手札 -->
+      <div id="hand-area">
+        <div id="hand-bar-header">
+          <h3>手札</h3>
+          <span id="hand-count-label"></span>
+        </div>
+        <div id="hand-cards"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 行動ボタンバー -->
+<div id="action-bar">
+  <div id="move-buttons" style="display:flex;gap:5px;align-items:center"></div>
+  <button class="action-btn ghost"  id="btn-cancel"  onclick="ui.onCancel()" style="display:none">キャンセル</button>
+</div>
+
+<!-- ベンチ出し確認モーダル -->
+<div class="modal-overlay" id="bench-confirm-modal">
+  <div class="modal-box">
+    <h3>🟢 ベンチに出す</h3>
+    <p id="bench-confirm-desc" style="font-size:12px;color:var(--muted)"></p>
+    <div class="modal-btns">
+      <button class="btn primary" onclick="ui.onBenchConfirm()">ベンチに出す</button>
+      <button class="btn ghost"   onclick="ui.onCancelBench()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- トレーナーズ：使用確認モーダル -->
+<div class="modal-overlay" id="trainer-use-confirm-modal">
+  <div class="modal-box">
+    <h3 id="trainer-confirm-title"></h3>
+    <div style="display:flex;gap:10px;align-items:flex-start;margin-top:4px">
+      <img id="trainer-confirm-img" src="" alt=""
+        style="width:90px;aspect-ratio:2/3;object-fit:cover;border-radius:8px;background:var(--card-bg);flex-shrink:0">
+      <div>
+        <div id="trainer-confirm-type" style="font-size:10px;color:var(--purple);font-weight:700;margin-bottom:4px"></div>
+        <p id="trainer-confirm-desc" style="font-size:11px;color:var(--muted);line-height:1.6"></p>
+      </div>
+    </div>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn primary" onclick="ui.onTrainerUseConfirmed()">使用する</button>
+      <button class="btn ghost"   onclick="ui.onTrainerUseCancel()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- トレーナーズ：汎用ターゲット選択モーダル -->
+<div class="modal-overlay" id="trainer-target-modal">
+  <div class="modal-box">
+    <h3 id="trainer-target-title">対象を選ぶ</h3>
+    <p id="trainer-target-desc" style="font-size:11px;color:var(--muted)"></p>
+    <div id="trainer-target-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+    <div class="modal-btns" style="margin-top:8px">
+      <button class="btn ghost" onclick="ui.onTrainerCancel()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- トレーナーズ：汎用カード選択モーダル（山札・トラッシュから） -->
+<div class="modal-overlay" id="trainer-select-modal">
+  <div class="modal-box">
+    <h3 id="trainer-select-title">カードを選ぶ</h3>
+    <p id="trainer-select-desc" style="font-size:11px;color:var(--muted)"></p>
+    <div id="trainer-select-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;max-height:300px;overflow-y:auto"></div>
+    <div class="modal-btns" style="margin-top:8px">
+      <button class="btn ghost" onclick="ui.onTrainerCancel()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- トレーナーズ：申告・入力モーダル -->
+<div class="modal-overlay" id="trainer-answer-modal">
+  <div class="modal-box">
+    <h3 id="trainer-answer-title">申告</h3>
+    <p id="trainer-answer-desc" style="font-size:12px;color:var(--muted)"></p>
+    <div id="trainer-answer-content" style="margin-top:8px"></div>
+    <div class="modal-btns" style="margin-top:10px" id="trainer-answer-btns"></div>
+  </div>
+</div>
+
+<!-- トレーナーズ：相手手札確認モーダル（安田顕） -->
+<div class="modal-overlay" id="trainer-peek-modal">
+  <div class="modal-box">
+    <h3>👁 相手の手札を見る</h3>
+    <p id="trainer-peek-desc" style="font-size:11px;color:var(--muted)"></p>
+    <div id="trainer-peek-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+    <div class="modal-btns" style="margin-top:8px">
+      <button class="btn primary" onclick="ui.onYasudaPeekDone()">確認した</button>
+    </div>
+  </div>
+</div>
+
+<!-- トレーナーズ：ボスの指令 ベンチ選択 -->
+<div class="modal-overlay" id="trainer-boss-modal">
+  <div class="modal-box">
+    <h3>👑 ボスの指令</h3>
+    <p style="font-size:11px;color:var(--muted)">相手のベンチポケモンを1匹選んでバトル場と入れ替えます</p>
+    <div id="trainer-boss-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+    <div class="modal-btns" style="margin-top:8px">
+      <button class="btn ghost" onclick="ui.onTrainerCancel()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- セットアップ：バトル場選択モーダル -->
+<div class="modal-overlay" id="setup-active-modal">
+  <div class="modal-box">
+    <h3>🎮 ゲーム開始 — バトル場を選ぶ</h3>
+    <p style="font-size:12px;color:var(--muted)">手札からたねポケモンを1体選んでバトル場に出してください</p>
+    <div id="setup-active-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+  </div>
+</div>
+
+<!-- セットアップ：ベンチ配置モーダル -->
+<div class="modal-overlay" id="setup-bench-modal">
+  <div class="modal-box">
+    <h3>🎮 ゲーム開始 — ベンチ配置</h3>
+    <p style="font-size:12px;color:var(--muted)">手札のたねポケモンをベンチに出せます（任意・最大4体）</p>
+    <div id="setup-bench-hand" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+    <div class="modal-btns" style="margin-top:10px">
+      <button class="btn primary" onclick="ui.onSetupComplete()">配置完了</button>
+    </div>
+  </div>
+</div>
+
+<!-- ドローポップアップ -->
+<div id="draw-popup">
+  <div class="draw-box">
+    <h2>🃏 ターン開始</h2>
+    <p id="draw-turn-label"></p>
+    <p>山札から1枚引いてください</p>
+    <button class="btn primary" onclick="ui.onDraw()">カードを引く</button>
+  </div>
+</div>
+
+<!-- カード拡大モーダル -->
+<div id="card-zoom-modal" onclick="ui.closeZoom()">
+  <div id="card-zoom-box" onclick="event.stopPropagation()">
+    <img id="card-zoom-img" src="" alt="">
+    <div id="card-zoom-placeholder">🃏</div>
+    <div id="card-zoom-info">
+      <div id="card-zoom-name"></div>
+      <div id="card-zoom-meta"></div>
+      <div id="card-zoom-hp"></div>
+      <div id="card-zoom-ability" style="display:none"></div>
+      <div id="card-zoom-moves"></div>
+    </div>
+    <button id="card-zoom-close" onclick="ui.closeZoom()">閉じる</button>
+  </div>
+</div>
+
+<!-- バトルログモーダル -->
+<div class="modal-overlay" id="log-modal">
+  <div class="modal-box">
+    <h3>📋 バトルログ</h3>
+    <div id="log-list"></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="ui.closeLog()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 進化先選択モーダル（進化元を選ぶ） -->
+<div class="modal-overlay" id="evolve-target-modal">
+  <div class="modal-box">
+    <h3>🔄 進化元を選ぶ</h3>
+    <p id="evolve-target-desc" style="font-size:11px;color:var(--muted)"></p>
+    <div id="evolve-target-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
+    <div class="modal-btns" style="margin-top:8px">
+      <button class="btn ghost" onclick="ui.onCancelEvolveSelect()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- エネルギー付与先選択モーダル -->
+<div class="modal-overlay" id="energy-target-modal">
+  <div class="modal-box">
+    <h3>⚡ エネルギーをつけるポケモンを選ぶ</h3>
+    <p style="font-size:11px;color:var(--muted)">バトル場またはベンチのポケモンを選んでください</p>
+    <div id="energy-target-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
+    <div class="modal-btns" style="margin-top:8px">
+      <button class="btn ghost" onclick="ui.onCancelEnergySelect()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- 逃げる確認モーダル -->
+<div class="modal-overlay" id="action-modal">
+  <div class="modal-box">
+    <h3 id="action-modal-title">⚔️ アクション</h3>
+    <p id="action-modal-desc" style="font-size:12px;color:var(--muted)"></p>
+    <!-- ワザ選択リスト -->
+    <div id="action-move-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px"></div>
+    <!-- 逃げるボタン -->
+    <div class="modal-btns" style="margin-top:8px">
+      <button class="btn ghost" id="action-retreat-btn" onclick="ui.onRetreatFromAction()">🏃 にげる</button>
+      <button class="btn ghost" onclick="ui.onCancelRetreat()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- ベンチ選択モーダル（逃げる後の入れ替え） -->
+<div class="modal-overlay" id="retreat-bench-modal">
+  <div class="modal-box">
+    <h3>🔄 入れ替えるポケモンを選ぶ</h3>
+    <p style="font-size:11px;color:var(--muted)">ベンチから1体選んでバトル場に出してください</p>
+    <div id="retreat-bench-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
+    <div class="modal-btns" style="margin-top:8px">
+      <button class="btn ghost" onclick="ui.onCancelRetreat()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- 登別市観光PRモーダル -->
+<div class="modal-overlay" id="pr-modal">
+  <div class="modal-box">
+    <h3>🗺 登別市観光PR</h3>
+    <p>相手プレイヤーに観光名所を紹介しました。<br>相手は知っていましたか？</p>
+    <div class="modal-btns">
+      <button class="btn ghost"   onclick="ui.onPRAnswer(true)">知っていた</button>
+      <button class="btn purple"  onclick="ui.onPRAnswer(false)">知らなかった</button>
+    </div>
+  </div>
+</div>
+
+<!-- サーチモーダル（温泉街への集客） -->
+<div class="modal-overlay" id="search-modal">
+  <div class="modal-box">
+    <h3>🔍 山札からポケモンを選ぶ</h3>
+    <p id="modal-desc" style="font-size:11px;color:var(--muted)"></p>
+    <div class="modal-card-list" id="modal-list"></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="ui.closeSearchModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- ゲームスタートオーバーレイ -->
+<div class="modal-overlay" id="overlay">
+  <div class="modal-box" style="text-align:center;align-items:center">
+    <h2 id="overlay-title" style="font-size:24px;color:var(--accent)"></h2>
+    <p id="overlay-msg"></p>
+    <button class="btn primary" style="width:100%;padding:14px;font-size:16px" onclick="ui.startGame()">ゲームスタート</button>
+  </div>
+</div>
+
+<script src="card_data.js"></script>
+<script src="game.js"></script>
+<script>
+const TYPE_STYLE = {
+  "自然信仰": { bg: "#2e7d32", color: "#fff", icon: "🌿" },
+  "文化振興": { bg: "#1565c0", color: "#fff", icon: "🎭" },
+  "観光資源": { bg: "#b8860b", color: "#fff", icon: "⭐" },
+  "観光発展": { bg: "#bf360c", color: "#fff", icon: "🏗" },
+  "無":       { bg: "#555",    color: "#fff", icon: "◇"  },
+};
+
+const ui = (() => {
+  let engine = null;
+  let state  = null;
+  let sel    = { handCard: null, target: null, mode: null };
+
+  function init() { showOverlay("カードバトル", "ゲームを開始してください"); }
+
+  function startGame() {
+    closeOverlay();
+    sel    = { handCard: null, target: null, mode: null };
+    engine = new GameEngine(onStateChange);
+    engine.setup();
+  }
+
+  function onStateChange(s) {
+    state = s;
+    render(s);
+    if (s.phase === PHASE.WAIT_SETUP_ACTIVE) openSetupActiveModal();
+    if (s.phase === PHASE.WAIT_SETUP_BENCH)  openSetupBenchModal();
+    if (s.phase === PHASE.WAIT_ONSEN_SEARCH) openSearchModal();
+    if (s.phase === PHASE.WAIT_TRAINER_TARGET)       openTrainerTargetModal(s);
+    if (s.phase === PHASE.WAIT_TRAINER_SELECT)       openTrainerSelectModal(s);
+    if (s.phase === PHASE.WAIT_TRAINER_ANSWER)       openTrainerAnswerModal(s);
+    if (s.phase === PHASE.WAIT_TRAINER_BENCH_SELECT) openTrainerBossModal(s);
+    if (s.phase === PHASE.GAME_OVER) {
+      setTimeout(() => {
+        showOverlay(s.winner === "player" ? "あなたの勝ち！🎉" : "CPUの勝ち…💀", "お疲れ様でした");
+      }, 700);
+    }
+  }
+
+  // ── レンダリング ──
+  function render(s) {
+    renderActive("cpu",    s.cpu.active,    false);
+    renderActive("player", s.player.active, true);
+    renderBench("cpu",     s.cpu.bench,     false);
+    renderBench("player",  s.player.bench,  true);
+    renderHand(s.player.hand);
+    renderActionBar(s);
+    renderDrawPopup(s);
+    renderPRModal(s);
+
+    document.getElementById("cpu-deck-count").textContent    = s.cpu.deck.length;
+    document.getElementById("cpu-hand-count").textContent    = s.cpu.hand.length;
+    document.getElementById("player-deck-count").textContent = s.player.deck.length;
+
+    // スタジアム表示
+    const stadiumArea = document.getElementById("stadium-area");
+    if (s.stadium) {
+      const stadiumCard = typeof TRAINER_CARDS !== "undefined"
+        ? TRAINER_CARDS.find(c => c.effectKey === s.stadium) : null;
+      document.getElementById("stadium-display").textContent =
+        stadiumCard ? `🏟 ${stadiumCard.name}` : `🏟 ${s.stadium}`;
+      stadiumArea.style.display = "block";
+    } else {
+      stadiumArea.style.display = "none";
+    }
+
+    const isPlayer = s.phase === PHASE.PLAYER_TURN || s.phase === PHASE.WAIT_DRAW;
+    const lbl = s.phase === PHASE.GAME_OVER  ? "終了"
+              : s.phase === PHASE.WAIT_DRAW   ? `ドロー(${s.turn}T)`
+              : isPlayer                       ? `あなた(${s.turn}T)`
+              : s.phase === PHASE.CPU_TURN     ? "CPUのターン"
+              : "入力待ち";
+    const tl = document.getElementById("turn-label");
+    tl.textContent        = lbl;
+    tl.style.background   = isPlayer ? "var(--accent)" : "var(--accent2)";
+    tl.style.color        = isPlayer ? "#000" : "#fff";
+  }
+
+  // ── ポケモン表示 ──
+  function renderActive(side, pokemon, isPlayer) {
+    const wrap = document.getElementById(`${side}-active-wrap`);
+    if (!pokemon) {
+      wrap.innerHTML = `<div class="poke-slot active-card"><div class="empty-slot">空</div></div>`;
+      return;
+    }
+    const maxHp = GameEngine.maxHp(pokemon);
+    const curHp = GameEngine.currentHp(pokemon);
+    const ratio = curHp / maxHp;
+    const hpCls = ratio > 0.5 ? "" : ratio > 0.25 ? "mid" : "low";
+    const isBT  = state && state.phase === PHASE.WAIT_BENCH_TARGET && !isPlayer;
+    const selCls   = isPlayer && sel.target === pokemon.uid ? " selected" : "";
+    const extraCls = isBT ? " bench-target" : (!isPlayer ? " cpu-zone" : "");
+    const clickFn  = isPlayer ? `ui.onSelectTarget('${pokemon.uid}')`
+                   : isBT ? `ui.onSelectBenchTarget('${pokemon.uid}')` : ``;
+    const pdata = encodeData(pokemon);
+    wrap.innerHTML = `
+      <div class="poke-slot active-card${selCls}${extraCls}" onclick="${clickFn}">
+        ${pokeImgHtml(pokemon)}
+        <button class="zoom-btn" onclick="event.stopPropagation();ui.showZoomByLive('${pdata}')">🔍</button>
+        <div class="poke-name">${pokemon.name}${pokemon.isEX?'<span class="poke-ex-badge">eX</span>':''}</div>
+        <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
+        <div class="hp-text">${curHp}/${maxHp}</div>
+        ${energyHtml(pokemon.attachedEnergy)}
+        ${abilityBadgeHtml(pokemon, isPlayer)}
+      </div>`;
+  }
+
+  function renderBench(side, bench, isPlayer) {
+    const row = document.getElementById(`${side}-bench`);
+    const isBT = state && state.phase === PHASE.WAIT_BENCH_TARGET && !isPlayer;
+    if (!bench.length) { row.innerHTML = `<span style="font-size:10px;color:var(--muted)">空</span>`; return; }
+    row.innerHTML = bench.map(p => {
+      const maxHp = GameEngine.maxHp(p);
+      const curHp = GameEngine.currentHp(p);
+      const ratio = curHp / maxHp;
+      const hpCls = ratio > 0.5 ? "" : ratio > 0.25 ? "mid" : "low";
+      const selCls   = isPlayer && sel.target === p.uid ? " selected" : "";
+      const extraCls = isBT ? " bench-target" : (!isPlayer ? " cpu-zone" : "");
+      const clickFn  = isPlayer ? `ui.onSelectTarget('${p.uid}')`
+                     : isBT ? `ui.onSelectBenchTarget('${p.uid}')` : ``;
+      const pdata = encodeData(p);
+      return `
+        <div class="bench-slot">
+          <div class="poke-slot${selCls}${extraCls}" onclick="${clickFn}">
+            ${pokeImgHtml(p)}
+            <button class="zoom-btn" onclick="event.stopPropagation();ui.showZoomByLive('${pdata}')">🔍</button>
+            <div class="poke-name">${p.name}${p.isEX?'<span class="poke-ex-badge">eX</span>':''}</div>
+            <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
+            ${energyHtml(p.attachedEnergy)}
+            ${abilityBadgeHtml(p, isPlayer)}
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  function pokeImgHtml(p) {
+    return `<img class="poke-img" src="${p.image||''}"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
+      <div class="poke-img-placeholder" style="display:none">🃏</div>`;
+  }
+
+  function energyHtml(energies) {
+    if (!energies || !energies.length) return "";
+    return `<div class="energy-row">${energies.map(e => {
+      const ts = TYPE_STYLE[e.type] || TYPE_STYLE["無"];
+      return `<div class="energy-pip" title="${e.type}" style="background:${ts.bg};color:${ts.color}">${ts.icon}</div>`;
+    }).join("")}</div>`;
+  }
+
+  function abilityBadgeHtml(pokemon, isPlayer) {
+    if (!pokemon.ability || pokemon.ability.trigger !== "once_per_turn") return "";
+    const used   = pokemon.abilityUsedThisTurn;
+    const canUse = isPlayer && state && state.phase === PHASE.PLAYER_TURN && !used;
+    return `<div class="ability-badge ${used?'used':''}"
+      onclick="${canUse?`event.stopPropagation();ui.onUseAbility('${pokemon.uid}')`:``}">
+      ✨${pokemon.ability.name}</div>`;
+  }
+
+  // ── 手札 ──
+  function renderHand(hand) {
+    const wrap  = document.getElementById("hand-cards");
+    const label = document.getElementById("hand-count-label");
+    if (label) label.textContent = hand && hand.length ? `（${hand.length}枚）` : "";
+    if (!hand || !hand.length) {
+      wrap.innerHTML = `<span style="font-size:11px;color:var(--muted)">手札なし</span>`;
+      return;
+    }
+    wrap.innerHTML = hand.map(c => {
+      const selected = sel.handCard === c.uid ? " selected" : "";
+      const isEnergy = c.cardType === "energy";
+      const isTrainer = c.cardType === "trainer";
+      const trainerLabel = isTrainer ? (c.trainerType === "goods" ? "グッズ" : c.trainerType === "tool" ? "道具" : c.trainerType === "stadium" ? "ST" : "SP") : null;
+      const badge    = isEnergy ? "E" : isTrainer ? trainerLabel : c.stage === 0 ? "たね" : c.stage === 1 ? "1進" : "2進";
+      const badgeSt  = isEnergy ? "background:var(--accent2);color:#fff"
+                     : isTrainer ? "background:var(--purple);color:#fff"
+                     : c.stage === 0 ? "background:var(--green);color:#000"
+                     : c.stage === 1 ? "background:var(--accent);color:#000"
+                     : "background:var(--red);color:#fff";
+      const cdata = encodeData(c);
+      return `
+        <div class="hand-card${selected}" onclick="ui.onSelectHand('${c.uid}')">
+          <img src="${c.image||''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${c.name}">
+          <div class="hand-card-placeholder" style="display:none">${isEnergy?'⚡':'🃏'}</div>
+          <button class="zoom-btn" onclick="event.stopPropagation();ui.showZoomByCard('${cdata}')">🔍</button>
+          <span class="hbadge" style="${badgeSt}">${badge}</span>
+          <div class="hand-card-name">${c.name}</div>
+        </div>`;
+    }).join("");
+  }
+
+  // ── 行動ボタンバー ──
+  function renderActionBar(s) {
+    const isP = s.phase === PHASE.PLAYER_TURN;
+
+    // ヘッダーのターン終了ボタン
+    const btnEnd = document.getElementById("btn-end");
+    if (btnEnd) btnEnd.disabled = !isP;
+
+    // キャンセルボタン：モード中のみ表示
+    const btnCancel = document.getElementById("btn-cancel");
+    if (btnCancel) btnCancel.style.display = sel.mode ? "block" : "none";
+
+    // 残りサイド枚数のみ常時表示
+    const moveBtns  = document.getElementById("move-buttons");
+    const prizeLeft = s.player.prizes.length;
+    moveBtns.innerHTML = `<div class="side-counter" title="残りサイド">🃏×${prizeLeft}</div>`;
+  }
+
+  function renderDrawPopup(s) {
+    const popup = document.getElementById("draw-popup");
+    if (s.phase === PHASE.WAIT_DRAW) {
+      document.getElementById("draw-turn-label").textContent = `${s.turn}ターン目`;
+      popup.classList.add("show");
+    } else {
+      popup.classList.remove("show");
+    }
+  }
+
+  // ── セットアップモーダル ──
+  function setupCardHtml(c, onclickFn) {
+    const badge   = c.stage === 0 ? "たね" : c.stage === 1 ? "1進" : "2進";
+    const badgeSt = c.stage === 0 ? "background:var(--green);color:#000"
+                  : c.stage === 1 ? "background:var(--accent);color:#000"
+                  : "background:var(--red);color:#fff";
+    return `
+      <div style="width:80px;cursor:pointer" onclick="${onclickFn}">
+        <div class="poke-slot" style="padding:5px;position:relative">
+          <img class="poke-img" src="${c.image||''}"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${c.name}">
+          <div class="poke-img-placeholder" style="display:none">🃏</div>
+          <span class="hbadge" style="${badgeSt}">${badge}</span>
+          <div class="poke-name" style="font-size:8px;margin-top:4px">${c.name}</div>
+          <div style="font-size:8px;color:var(--muted)">HP:${c.hp}</div>
+        </div>
+      </div>`;
+  }
+
+  function openSetupActiveModal() {
+    if (!state) return;
+    const seeds = state.player.hand.filter(c => c.cardType !== "energy" && c.stage === 0);
+    document.getElementById("setup-active-list").innerHTML =
+      seeds.map(c => setupCardHtml(c, `ui.onSetupSelectActive('${c.uid}')`)).join("");
+    document.getElementById("setup-active-modal").classList.add("show");
+  }
+
+  function openSetupBenchModal() {
+    if (!state) return;
+    const seeds = state.player.hand.filter(c => c.cardType !== "energy" && c.stage === 0);
+    const list  = document.getElementById("setup-bench-hand");
+    if (seeds.length === 0) {
+      list.innerHTML = "<p style='font-size:12px;color:var(--muted)'>ベンチに出せるたねポケモンはありません</p>";
+    } else {
+      list.innerHTML = seeds.map(c => setupCardHtml(c, `ui.onSetupAddBench('${c.uid}')`)).join("");
+    }
+    document.getElementById("setup-bench-modal").classList.add("show");
+  }
+
+  function refreshSetupBenchModal() {
+    if (!state) return;
+    const seeds = state.player.hand.filter(c => c.cardType !== "energy" && c.stage === 0);
+    const list  = document.getElementById("setup-bench-hand");
+    if (seeds.length === 0) {
+      list.innerHTML = "<p style='font-size:12px;color:var(--muted)'>これ以上出せるたねポケモンはありません</p>";
+    } else {
+      list.innerHTML = seeds.map(c => setupCardHtml(c, `ui.onSetupAddBench('${c.uid}')`)).join("");
+    }
+  }
+
+  function onSetupSelectActive(uid) {
+    document.getElementById("setup-active-modal").classList.remove("show");
+    engine.setupSelectActive(uid);
+  }
+
+  function onSetupAddBench(uid) {
+    engine.setupAddBench(uid);
+    // ベンチ追加後はモーダルをリフレッシュ
+    if (state && state.phase === PHASE.WAIT_SETUP_BENCH) {
+      refreshSetupBenchModal();
+    }
+  }
+
+  function onSetupComplete() {
+    document.getElementById("setup-bench-modal").classList.remove("show");
+    engine.setupComplete();
+  }
+
+  // ============================================================
+  // トレーナーズUI
+  // ============================================================
+
+  // トレーナーズ使用確認モーダルを表示
+  function openTrainerUseConfirm(card) {
+    if (!state || state.phase !== PHASE.PLAYER_TURN) return;
+    // サポートはターン1枚チェック
+    if (card.trainerType === "support" && state.turnFlags.supportUsed) {
+      engine._err("サポートはターンに1枚しか使えません");
+      clearSel(); if (state) renderHand(state.player.hand); return;
+    }
+    const typeLabels = { goods: "グッズ", tool: "ポケモンの道具", stadium: "スタジアム", support: "サポート" };
+    document.getElementById("trainer-confirm-title").textContent = card.name;
+    document.getElementById("trainer-confirm-type").textContent  = typeLabels[card.trainerType] || "";
+    document.getElementById("trainer-confirm-desc").textContent  = card.description || "";
+    const img = document.getElementById("trainer-confirm-img");
+    img.src = card.image || "";
+    img.onerror = () => { img.style.display = "none"; };
+    img.style.display = "block";
+    document.getElementById("trainer-use-confirm-modal").classList.add("show");
+  }
+
+  function onTrainerUseConfirmed() {
+    document.getElementById("trainer-use-confirm-modal").classList.remove("show");
+    if (!sel.handCard) return;
+    engine.useTrainer(sel.handCard);
+    clearSel();
+  }
+
+  function onTrainerUseCancel() {
+    document.getElementById("trainer-use-confirm-modal").classList.remove("show");
+    clearSel();
+    if (state) renderHand(state.player.hand);
+  }
+
+  // トレーナーズキャンセル
+  function onTrainerCancel() {
+    ["trainer-target-modal","trainer-select-modal","trainer-answer-modal",
+     "trainer-boss-modal","trainer-peek-modal"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove("show");
+    });
+    // 手札にカードを戻す（game.jsで既に手から除いている場合はサーバー側で戻す）
+    clearSel();
+    if (state) render(state);
+  }
+
+  // ── ターゲット選択モーダル（自分のポケモン対象） ──
+  function openTrainerTargetModal(s) {
+    const ctx = s.pendingContext;
+    if (!ctx) return;
+    const titles = {
+      nkb_sousenkyo_select:    "進化させるクマを選ぶ",
+      yakitori_target:         "HP回復するポケモンを選ぶ",
+      yakisoba_target:         "HP回復するポケモンを選ぶ",
+      tool_attach:             "道具をつけるポケモンを選ぶ",
+      tool_attach_kanabo:      "金棒をつけるポケモンを選ぶ",
+      nippon_steel_bench_energy: "エネルギーをつけるベンチポケモンを選ぶ",
+    };
+    document.getElementById("trainer-target-title").textContent = titles[ctx.type] || "対象を選ぶ";
+    document.getElementById("trainer-target-desc").textContent  = ctx.card?.description || "";
+    const list = document.getElementById("trainer-target-list");
+    list.innerHTML = (ctx.candidates || []).map(p => {
+      const maxHp = GameEngine.maxHp(p);
+      const curHp = GameEngine.currentHp(p);
+      const ratio = curHp / maxHp;
+      const hpCls = ratio > 0.5 ? "" : ratio > 0.25 ? "mid" : "low";
+      const loc   = state.player.active && state.player.active.uid === p.uid ? "⚔️" : "🪑";
+      const cb    = ctx.type === "nippon_steel_bench_energy"
+        ? `ui.onNipponSteelBenchTarget('${p.uid}')`
+        : `ui.onTrainerTargetSelect('${p.uid}')`;
+      return `
+        <div style="width:80px;cursor:pointer" onclick="${cb}">
+          <div class="poke-slot" style="padding:4px">
+            <img class="poke-img" src="${p.image||''}"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
+            <div class="poke-img-placeholder" style="display:none">🃏</div>
+            <div class="poke-name" style="font-size:8px">${loc}${p.name}</div>
+            <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
+            <div class="hp-text">${curHp}/${maxHp}</div>
+          </div>
+        </div>`;
+    }).join("");
+    document.getElementById("trainer-target-modal").classList.add("show");
+  }
+
+  function onTrainerTargetSelect(uid) {
+    if (!state) return;
+    const ctx = state.pendingContext;
+    document.getElementById("trainer-target-modal").classList.remove("show");
+    if (!ctx) return;
+    switch (ctx.type) {
+      case "nkb_sousenkyo_select": engine.nkbSousenkyoSelect(uid); break;
+      case "yakitori_target":      engine.yakitoriTarget(uid);      break;
+      case "yakisoba_target":      engine.yakisobaTarget(uid);      break;
+      case "tool_attach":
+      case "tool_attach_kanabo":   engine.toolAttach(uid);          break;
+    }
+  }
+
+  // ── カード選択モーダル（山札・トラッシュから） ──
+  function openTrainerSelectModal(s) {
+    const ctx = s.pendingContext;
+    if (!ctx) return;
+    const titles = {
+      kuma_bokujyo_search:   "山札から選ぶ（HP90以下のたね）",
+      hakucho_stage2_search: "山札から2進化ポケモンを選ぶ",
+      washi_shrine_select:   `トラッシュから3枚選ぶ（${ctx.selected?.length || 0}/3枚選択中）`,
+      nippon_steel:          "トラッシュからエネルギーを選ぶ（バトル場に付けます）",
+    };
+    document.getElementById("trainer-select-title").textContent = titles[ctx.type] || "カードを選ぶ";
+    document.getElementById("trainer-select-desc").textContent  =
+      ctx.type === "washi_shrine_select" ? `選択中: ${ctx.selected?.length || 0}/3枚` : "";
+    const list = document.getElementById("trainer-select-list");
+    list.innerHTML = (ctx.candidates || []).map(c => {
+      const isSelected = ctx.selected?.find(s => s.uid === c.uid);
+      const border     = isSelected ? "border-color:var(--accent)" : "";
+      const isEnergy   = c.cardType === "energy";
+      return `
+        <div style="width:76px;cursor:pointer" onclick="ui.onTrainerCardSelect('${c.uid}')">
+          <div class="poke-slot" style="padding:4px;${border}">
+            <img class="poke-img" src="${c.image||''}"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${c.name}">
+            <div class="poke-img-placeholder" style="display:none">${isEnergy?'⚡':'🃏'}</div>
+            <div class="poke-name" style="font-size:8px">${c.name}</div>
+            ${isSelected ? '<div style="font-size:8px;color:var(--accent)">✓ 選択中</div>' : ''}
+          </div>
+        </div>`;
+    }).join("");
+    document.getElementById("trainer-select-modal").classList.add("show");
+  }
+
+  function onTrainerCardSelect(uid) {
+    if (!state) return;
+    const ctx = state.pendingContext;
+    document.getElementById("trainer-select-modal").classList.remove("show");
+    switch (ctx?.type) {
+      case "kuma_bokujyo_search":   engine.kumaBokujyoSelect(uid);    break;
+      case "hakucho_stage2_search": engine.hakuchoBridgeSelect(uid);  break;
+      case "washi_shrine_select":   engine.washiShrineSelect(uid);    break;
+      case "nippon_steel":          engine.nipponSteelSelectEnergy(uid, "player"); break;
+    }
+  }
+
+  // ── 申告・入力モーダル ──
+  function openTrainerAnswerModal(s) {
+    const ctx = s.pendingContext;
+    if (!ctx) return;
+    const modal = document.getElementById("trainer-answer-modal");
+    const content_el = document.getElementById("trainer-answer-content");
+    const btns_el    = document.getElementById("trainer-answer-btns");
+
+    switch (ctx.type) {
+      case "yakitori_price":
+        document.getElementById("trainer-answer-title").textContent = "🍗 室蘭やきとり 価格クイズ";
+        document.getElementById("trainer-answer-desc").textContent  =
+          "相手プレイヤーへ：やきとりの一平の焼きとり1本の価格を入力してください";
+        content_el.innerHTML = `
+          <input type="number" id="yakitori-price-input" placeholder="価格を入力（例：150）"
+            style="width:100%;padding:10px;background:var(--card-bg);border:1px solid var(--border);
+            border-radius:8px;color:var(--text);font-size:16px;margin-bottom:6px">
+          <div style="font-size:11px;color:var(--muted)">※相手プレイヤーがスマホを操作して入力</div>`;
+        // CPU相手のベンチリスト（正解時の回復対象）
+        const cpuBench = s.cpu.bench.filter(Boolean);
+        const benchOptions = cpuBench.length > 0
+          ? cpuBench.map(p => `<option value="${p.uid}">${p.name}</option>`).join("")
+          : "<option value=''>ベンチなし</option>";
+        btns_el.innerHTML = `
+          <select id="yakitori-bench-select" style="flex:1;padding:8px;background:var(--card-bg);
+            border:1px solid var(--border);border-radius:8px;color:var(--text)">
+            ${benchOptions}
+          </select>
+          <button class="btn primary" onclick="ui.onYakitoriJudge()">判定</button>`;
+        break;
+
+      case "yakisoba_check":
+        document.getElementById("trainer-answer-title").textContent = "🍜 閻魔焼きそばチェック";
+        document.getElementById("trainer-answer-desc").textContent  = "今日、焼きそばを食べましたか？";
+        content_el.innerHTML = "";
+        btns_el.innerHTML = `
+          <button class="btn primary" onclick="ui.onYakisobaAnswer(true)">食べた！</button>
+          <button class="btn ghost"   onclick="ui.onYakisobaAnswer(false)">食べていない</button>`;
+        break;
+
+      case "nippon_steel_bonus":
+        document.getElementById("trainer-answer-title").textContent = "🏭 日本製鉄 追加効果";
+        document.getElementById("trainer-answer-desc").textContent  =
+          "日本製鉄の関連企業に就労している親族がいますか？";
+        content_el.innerHTML = "";
+        btns_el.innerHTML = `
+          <button class="btn primary" onclick="ui.onNipponSteelBonus(true)">いる</button>
+          <button class="btn ghost"   onclick="ui.onNipponSteelBonus(false)">いない</button>`;
+        break;
+
+      case "kanabo_color":
+        document.getElementById("trainer-answer-title").textContent = "🔴🔵 金棒 着衣色";
+        document.getElementById("trainer-answer-desc").textContent  =
+          "相手プレイヤーの着ている色を申告してください";
+        content_el.innerHTML = "";
+        btns_el.innerHTML = `
+          <button class="btn danger"  onclick="ui.onKanaboColor('red')">🔴 赤</button>
+          <button class="btn blue"    onclick="ui.onKanaboColor('blue')">🔵 青</button>
+          <button class="btn ghost"   onclick="ui.onKanaboColor('other')">その他</button>`;
+        break;
+
+      case "hanabi_check":
+        document.getElementById("trainer-answer-title").textContent = "🎆 室蘭満点花火";
+        document.getElementById("trainer-answer-desc").textContent  =
+          "今年花火大会に行きましたか？（自己申告）";
+        content_el.innerHTML = "";
+        btns_el.innerHTML = `
+          <button class="btn primary" onclick="ui.onHanabiAnswer(true)">行った！</button>
+          <button class="btn ghost"   onclick="ui.onHanabiAnswer(false)">行っていない</button>`;
+        break;
+
+      case "yasuda_peek":
+        openYasudaPeekModal(ctx);
+        return;
+    }
+    modal.classList.add("show");
+  }
+
+  function onYakitoriJudge() {
+    const price    = document.getElementById("yakitori-price-input")?.value || "";
+    const benchSel = document.getElementById("yakitori-bench-select")?.value || "";
+    document.getElementById("trainer-answer-modal").classList.remove("show");
+    engine.yakitoriPriceAnswer(price, benchSel);
+  }
+
+  function onYakisobaAnswer(ate)       { document.getElementById("trainer-answer-modal").classList.remove("show"); engine.yakisobaAnswer(ate); }
+  function onNipponSteelBonus(has)     { document.getElementById("trainer-answer-modal").classList.remove("show"); engine.nipponSteelBonusAnswer(has); }
+  function onKanaboColor(color)        { document.getElementById("trainer-answer-modal").classList.remove("show"); engine.kanaboColorAnswer(color); }
+  function onHanabiAnswer(went)        { document.getElementById("trainer-answer-modal").classList.remove("show"); engine.hanabiAnswer(went); }
+
+  // 日本製鉄ベンチエネルギー選択
+  function onNipponSteelBenchTarget(targetUid) {
+    document.getElementById("trainer-target-modal").classList.remove("show");
+    // トラッシュからエネルギー選択モーダルを開く
+    if (!state) return;
+    const ctx = state.pendingContext;
+    const energies = state.player.discard.filter(c => c.cardType === "energy");
+    if (energies.length === 0) { engine._err("トラッシュにエネルギーがありません"); return; }
+    state.pendingContext._benchTarget = targetUid;
+    state.pendingContext.candidates   = energies;
+    state.pendingContext.type         = "nippon_steel_bench_energy_select";
+    openTrainerSelectModal(state);
+  }
+
+  // ── 安田顕 手札確認モーダル ──
+  function openYasudaPeekModal(ctx) {
+    document.getElementById("trainer-peek-desc").textContent =
+      `相手の手札${ctx.peekCards.length}枚を確認してください（自分が見せたカード: ${ctx.shown?.name || ""}）`;
+    document.getElementById("trainer-peek-list").innerHTML = ctx.peekCards.map(c => {
+      const isEnergy = c.cardType === "energy";
+      return `
+        <div style="width:80px">
+          <div class="poke-slot" style="padding:4px">
+            <img class="poke-img" src="${c.image||''}"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${c.name}">
+            <div class="poke-img-placeholder" style="display:none">${isEnergy?'⚡':'🃏'}</div>
+            <div class="poke-name" style="font-size:8px">${c.name}</div>
+          </div>
+        </div>`;
+    }).join("");
+    document.getElementById("trainer-peek-modal").classList.add("show");
+  }
+
+  function onYasudaPeekDone() {
+    document.getElementById("trainer-peek-modal").classList.remove("show");
+    engine.yasudaPeekDone();
+  }
+
+  // ── ボスの指令 ──
+  function openTrainerBossModal(s) {
+    const ctx = s.pendingContext;
+    if (!ctx) return;
+    document.getElementById("trainer-boss-list").innerHTML =
+      (ctx.candidates || []).map(p => {
+        const maxHp = GameEngine.maxHp(p);
+        const curHp = GameEngine.currentHp(p);
+        const ratio = curHp / maxHp;
+        const hpCls = ratio > 0.5 ? "" : ratio > 0.25 ? "mid" : "low";
+        return `
+          <div style="width:80px;cursor:pointer" onclick="ui.onBossOrderSelect('${p.uid}')">
+            <div class="poke-slot" style="padding:4px">
+              <img class="poke-img" src="${p.image||''}"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
+              <div class="poke-img-placeholder" style="display:none">🃏</div>
+              <div class="poke-name" style="font-size:8px">${p.name}</div>
+              <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
+              <div class="hp-text">${curHp}/${maxHp}</div>
+            </div>
+          </div>`;
+      }).join("");
+    document.getElementById("trainer-boss-modal").classList.add("show");
+  }
+
+  function onBossOrderSelect(uid) {
+    document.getElementById("trainer-boss-modal").classList.remove("show");
+    engine.bossOrderSelect(uid);
+  }
+
+
+
+  function renderPRModal(s) {
+    document.getElementById("pr-modal").classList.toggle("show", s.phase === PHASE.WAIT_PR_ANSWER);
+  }
+
+  // ── 実ダメージ計算 ──
+  function calcActualDamage(active, move, s) {
+    if (move.damage === 0) return 0;
+    const defender = s.cpu.active;
+    if (!defender) return move.damage;
+    let dmg = move.damage;
+    if (move.effect === "sousenkyo") {
+      const ps = s.player;
+      const fc = [ps.active, ...ps.bench].filter(p => p && KUMA_LINE_IDS.has(p.id)).length;
+      const tc = ps.discard.filter(c => KUMA_LINE_IDS.has(c.id)).length;
+      dmg += (fc + tc) * 20;
+    }
+    if (move.effect === "kamikudaku") dmg += active.damage;
+    if (move.effect === "one_hand_strike") {
+      dmg += ((active.attachedEnergy||[]).length + (defender.attachedEnergy||[]).length) * 30;
+    }
+    return dmg;
+  }
+
+  // ── データエンコード（inline onclick用） ──
+  function encodeData(obj) {
+    return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+  }
+  function decodeData(str) {
+    return JSON.parse(decodeURIComponent(escape(atob(str))));
+  }
+
+  // ── 選択 ──
+  function onSelectHand(uid) {
+    if (sel.handCard === uid) {
+      clearSel();
+      if (state) { renderHand(state.player.hand); renderActionBar(state); }
+      return;
+    }
+    sel.handCard = uid;
+    if (state) renderHand(state.player.hand);
+    if (!state || state.phase !== PHASE.PLAYER_TURN) return;
+
+    const card = state.player.hand.find(c => c.uid === uid);
+    if (!card) return;
+
+    // エネルギーカード → 付与先選択モーダル
+    if (card.cardType === "energy" && !state.turnFlags.attachedEnergy) {
+      sel.mode = "energy";
+      openEnergyTargetModal();
+    }
+    // たねポケモン → ベンチ出し確認モーダル
+    else if (card.cardType !== "energy" && card.cardType !== "trainer" && card.stage === 0) {
+      sel.mode = "bench";
+      openBenchConfirmModal(card);
+    }
+    // 進化カード（stage > 0）→ 進化元選択モーダル
+    else if (card.cardType !== "energy" && card.cardType !== "trainer" && card.stage > 0 && state.turn > 1) {
+      sel.mode = "evolve";
+      openEvolveTargetModal(card);
+    }
+    // トレーナーズカード → 使用確認
+    else if (card.cardType === "trainer") {
+      openTrainerUseConfirm(card);
+    }
+    if (state) renderActionBar(state);
+  }
+
+  function onSelectTarget(uid) {
+    if (sel.mode === "energy" && sel.handCard) {
+      engine.attachEnergy(sel.handCard, uid); clearSel(); return;
+    }
+    if (sel.mode === "evolve" && sel.handCard) {
+      engine.evolve(sel.handCard, uid); clearSel(); return;
+    }
+    if (!state) return;
+    const isActive = state.player.active && state.player.active.uid === uid;
+    if (isActive && state.phase === PHASE.PLAYER_TURN) {
+      openActionModal();
+    }
+  }
+
+  function onSelectBenchTarget(uid) {
+    if (!state || state.phase !== PHASE.WAIT_BENCH_TARGET) return;
+    engine.selectBenchTarget(uid);
+  }
+
+  function clearSel() { sel = { handCard: null, target: null, mode: null }; }
+
+  // ── アクション ──
+  function onDraw() { engine.playerDraw(); }
+  function onEndTurn() { engine.endTurn(); }
+
+  function onAttack(i) {
+    const attacker = state && state.player.active;
+    const move = attacker && attacker.moves[i];
+    if (move && move.effect === "onsen_search") {
+      const effCost = engine._getEffectiveCost(attacker, move, "player");
+      if (!engine._canUseMove(attacker, effCost)) { engine._err("エネルギーが足りません"); return; }
+      engine.state.turnFlags.attacked = true;
+      engine.startOnsenSearch();
+      return;
+    }
+    engine.attack(i);
+  }
+
+  function onPlayBench() {
+    if (!sel.handCard) { sel.mode = "bench"; if (state) renderActionBar(state); return; }
+    engine.playToBench(sel.handCard); clearSel();
+  }
+  // 進化元選択モーダル
+  function openEvolveTargetModal(evoCard) {
+    if (!state) return;
+    const s = state.player;
+    // 進化できる対象（evolvesFromが一致するポケモン）
+    const candidates = [s.active, ...s.bench].filter(p => p && p.name === evoCard.evolvesFrom);
+    if (candidates.length === 0) {
+      engine._err(`${evoCard.name} に進化できるポケモンが場にいません`);
+      clearSel();
+      if (state) { renderHand(state.player.hand); renderActionBar(state); }
+      return;
+    }
+    document.getElementById("evolve-target-desc").textContent =
+      `${evoCard.name} に進化できるポケモンを選んでください`;
+    const list = document.getElementById("evolve-target-list");
+    list.innerHTML = candidates.map(p => {
+      const maxHp = GameEngine.maxHp(p);
+      const curHp = GameEngine.currentHp(p);
+      const ratio = curHp / maxHp;
+      const hpCls = ratio > 0.5 ? "" : ratio > 0.25 ? "mid" : "low";
+      const loc   = s.active && s.active.uid === p.uid ? "バトル場" : "ベンチ";
+      return `
+        <div style="width:84px;cursor:pointer" onclick="ui.onEvolveTargetSelect('${p.uid}')">
+          <div class="poke-slot" style="padding:4px">
+            <img class="poke-img" src="${p.image||''}"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
+            <div class="poke-img-placeholder" style="display:none">🃏</div>
+            <div class="poke-name" style="font-size:8px">${p.name}</div>
+            <div style="font-size:7px;color:var(--accent2);margin-top:1px">${loc}</div>
+            <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
+            <div class="hp-text">${curHp}/${maxHp}</div>
+          </div>
+        </div>`;
+    }).join("");
+    document.getElementById("evolve-target-modal").classList.add("show");
+  }
+
+  function onEvolveTargetSelect(targetUid) {
+    document.getElementById("evolve-target-modal").classList.remove("show");
+    if (sel.handCard) {
+      engine.evolve(sel.handCard, targetUid);
+    }
+    clearSel();
+  }
+
+  function onCancelEvolveSelect() {
+    document.getElementById("evolve-target-modal").classList.remove("show");
+    clearSel();
+    if (state) { renderHand(state.player.hand); renderActionBar(state); }
+  }
+
+  // キャンセル
+  function onCancel() { clearSel(); if (state) { renderHand(state.player.hand); renderActionBar(state); } }
+
+  // ── ベンチ出し ──
+  function openBenchConfirmModal(card) {
+    const isFull = state.player.bench.length >= 4;
+    document.getElementById("bench-confirm-desc").textContent =
+      isFull ? "ベンチが満員です（最大4体）" : card.name + " をベンチに出しますか？";
+    document.querySelector("#bench-confirm-modal .btn.primary").disabled = isFull;
+    document.getElementById("bench-confirm-modal").classList.add("show");
+  }
+
+  function onBenchConfirm() {
+    document.getElementById("bench-confirm-modal").classList.remove("show");
+    if (sel.handCard) { engine.playToBench(sel.handCard); }
+    clearSel();
+  }
+
+  function onCancelBench() {
+    document.getElementById("bench-confirm-modal").classList.remove("show");
+    clearSel();
+    if (state) { renderHand(state.player.hand); renderActionBar(state); }
+  }
+
+  // ── バトル場アクションモーダル（ワザ＋にげる） ──
+  function openActionModal() {
+    if (!state) return;
+    const active = state.player.active;
+    const tf     = state.turnFlags;
+    document.getElementById("action-modal-title").textContent = "⚔️ " + active.name;
+    document.getElementById("action-modal-desc").textContent  = "";
+
+    const moveList = document.getElementById("action-move-list");
+    if (tf.attacked) {
+      moveList.innerHTML = "<p style='font-size:12px;color:var(--muted)'>このターンはすでにワザを使いました。</p>";
+    } else {
+      // 通常ワザ
+      const moveBtns = active.moves.map((m, i) => {
+        const effCost = engine._getEffectiveCost(active, m, "player");
+        const canUse  = engine._canUseMove(active, effCost);
+        const actual  = calcActualDamage(active, m, state);
+        const dmgStr  = m.damage === 0 ? "効果のみ" : actual + "ダメージ";
+        const costStr = effCost.length === 0 ? "コストなし" : effCost.join(" / ");
+        const descHtml = m.description ? "<div style='font-size:10px;color:var(--accent);margin-top:3px;line-height:1.4'>" + m.description + "</div>" : "";
+        const btnCls  = canUse ? "btn primary" : "btn ghost";
+        return "<button class='" + btnCls + "' style='text-align:left;padding:10px 12px;width:100%' "
+          + (canUse ? "" : "disabled ") + "onclick='ui.onAttackFromModal(" + i + ")'>"
+          + "<div style='font-size:13px;font-weight:700'>" + m.name + "</div>"
+          + "<div style='font-size:10px;margin-top:2px;color:" + (canUse ? "#0006" : "var(--muted)") + "'>" + costStr + " — " + dmgStr + "</div>"
+          + descHtml + "</button>";
+      });
+      // レコレクション追加ワザ
+      if (active.attachedTool && active.attachedTool.effectKey === "tool_recollection") {
+        const tm = active.attachedTool.tool_move;
+        moveBtns.push(
+          "<button class='btn blue' style='text-align:left;padding:10px 12px;width:100%' onclick='ui.onRecollectionAttack()'>"
+          + "<div style='font-size:13px;font-weight:700'>" + tm.name + " <span style=\"font-size:10px;background:var(--purple);color:#fff;padding:1px 4px;border-radius:3px\">道具</span></div>"
+          + "<div style='font-size:10px;margin-top:2px;color:#fff9'>" + (tm.cost.join(" / ") || "コストなし") + " — 効果のみ</div>"
+          + "<div style='font-size:10px;color:var(--accent);margin-top:3px;line-height:1.4'>" + tm.description + "</div>"
+          + "</button>"
+        );
+      }
+      moveList.innerHTML = moveBtns.join("");
+    }
+
+    const canRetreat = !tf.retreated && !tf.attacked;
+    const retreatBtn = document.getElementById("action-retreat-btn");
+    retreatBtn.disabled = !canRetreat;
+
+    document.getElementById("action-modal").classList.add("show");
+  }
+
+  function closeActionModal() {
+    document.getElementById("action-modal").classList.remove("show");
+    clearSel();
+  }
+
+  function onAttackFromModal(i) {
+    document.getElementById("action-modal").classList.remove("show");
+    clearSel();
+    onAttack(i);
+  }
+
+  function onRecollectionAttack() {
+    document.getElementById("action-modal").classList.remove("show");
+    clearSel();
+    const active = state && state.player.active;
+    if (active) engine.useRecollection(active.uid);
+  }
+
+  function onRetreatFromAction() {
+    document.getElementById("action-modal").classList.remove("show");
+    openRetreatBenchModal();
+  }
+
+  // ── 逃げる処理 ──
+  function openRetreatBenchModal() {
+    if (!state) return;
+    const bench = state.player.bench.filter(Boolean);
+    const list  = document.getElementById("retreat-bench-list");
+    list.innerHTML = bench.map(p => {
+      const maxHp = GameEngine.maxHp(p);
+      const curHp = GameEngine.currentHp(p);
+      const ratio = curHp / maxHp;
+      const hpCls = ratio > 0.5 ? "" : ratio > 0.25 ? "mid" : "low";
+      return `
+        <div style="width:80px;cursor:pointer" onclick="ui.onRetreatBenchSelect('${p.uid}')">
+          <div class="poke-slot" style="padding:4px">
+            <img class="poke-img" src="${p.image||''}"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
+            <div class="poke-img-placeholder" style="display:none">🃏</div>
+            <div class="poke-name" style="font-size:8px">${p.name}</div>
+            <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
+            <div class="hp-text">${curHp}/${maxHp}</div>
+            ${energyHtml(p.attachedEnergy)}
+          </div>
+        </div>`;
+    }).join("");
+    document.getElementById("retreat-bench-modal").classList.add("show");
+  }
+
+  function onRetreatBenchSelect(benchUid) {
+    document.getElementById("retreat-bench-modal").classList.remove("show");
+    engine.retreat(benchUid);
+    clearSel();
+  }
+
+  function onCancelRetreat() {
+    document.getElementById("action-modal").classList.remove("show");
+    document.getElementById("retreat-bench-modal").classList.remove("show");
+    clearSel();
+  }
+
+  // エネルギー付与先選択モーダル
+  function openEnergyTargetModal() {
+    if (!state) return;
+    const s = state.player;
+    const list = document.getElementById("energy-target-list");
+    // バトル場とベンチを分けて表示
+    const sections = [
+      { label: "⚔️ バトル場", pokemons: s.active ? [s.active] : [] },
+      { label: "🪑 ベンチ",   pokemons: s.bench.filter(Boolean) },
+    ];
+    list.innerHTML = sections.map(sec => {
+      if (sec.pokemons.length === 0) return "";
+      const cards = sec.pokemons.map(p => {
+        const maxHp = GameEngine.maxHp(p);
+        const curHp = GameEngine.currentHp(p);
+        const ratio = curHp / maxHp;
+        const hpCls = ratio > 0.5 ? "" : ratio > 0.25 ? "mid" : "low";
+        return `
+          <div style="width:80px;cursor:pointer" onclick="ui.onEnergyTargetSelect('${p.uid}')">
+            <div class="poke-slot" style="padding:4px;border-color:${sec.label.includes("バトル") ? "var(--accent)" : "var(--border)"}">
+              <img class="poke-img" src="${p.image||''}"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
+              <div class="poke-img-placeholder" style="display:none">🃏</div>
+              <div class="poke-name" style="font-size:8px">${p.name}</div>
+              <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
+              <div class="hp-text">${curHp}/${maxHp}</div>
+              ${energyHtml(p.attachedEnergy)}
+            </div>
+          </div>`;
+      }).join("");
+      return `
+        <div style="width:100%">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600">${sec.label}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">${cards}</div>
+        </div>`;
+    }).join("");
+    document.getElementById("energy-target-modal").classList.add("show");
+  }
+
+  function onEnergyTargetSelect(uid) {
+    document.getElementById("energy-target-modal").classList.remove("show");
+    if (sel.handCard) {
+      engine.attachEnergy(sel.handCard, uid);
+    }
+    clearSel();
+  }
+
+  function onCancelEnergySelect() {
+    document.getElementById("energy-target-modal").classList.remove("show");
+    clearSel();
+    if (state) { renderHand(state.player.hand); renderActionBar(state); }
+  }
+
+  function onUseAbility(uid) { engine.useAbility(uid); }
+  function onPRAnswer(knows) {
+    document.getElementById("pr-modal").classList.remove("show");
+    engine.answerPR(knows);
+  }
+
+  // ── カード拡大 ──
+  function showZoom(card, liveData) {
+    const img = document.getElementById("card-zoom-img");
+    const ph  = document.getElementById("card-zoom-placeholder");
+    img.src = card.image || "";
+    img.style.display = "block"; ph.style.display = "none";
+    img.onerror = () => { img.style.display = "none"; ph.style.display = "flex"; };
+
+    const stageStr = card.stage === 0 ? "たね" : card.stage === 1 ? "1進化" : "2進化";
+    document.getElementById("card-zoom-name").innerHTML =
+      `${card.name}${card.isEX?' <span style="background:var(--purple);color:#fff;font-size:10px;padding:1px 5px;border-radius:3px">eX</span>':''}
+       <span style="font-size:10px;color:var(--muted)">[${stageStr}]</span>`;
+    document.getElementById("card-zoom-meta").textContent =
+      `タイプ: ${card.type||"—"}　にげる: ${card.retreat??0}`;
+
+    const hpEl = document.getElementById("card-zoom-hp");
+    if (liveData) {
+      const cur = GameEngine.currentHp(liveData);
+      const max = GameEngine.maxHp(liveData);
+      hpEl.textContent = `HP: ${cur} / ${max}`;
+      hpEl.style.color = cur/max > 0.5 ? "var(--green)" : cur/max > 0.25 ? "var(--accent)" : "var(--red)";
+    } else {
+      hpEl.textContent = `HP: ${card.hp}`;
+      hpEl.style.color = "var(--green)";
+    }
+
+    const abilityEl = document.getElementById("card-zoom-ability");
+    if (card.ability) {
+      abilityEl.style.display = "block";
+      abilityEl.innerHTML = `<div class="zoom-ability-name">✨ ${card.ability.name}</div>
+        <div class="zoom-ability-desc">${card.ability.description}</div>`;
+    } else { abilityEl.style.display = "none"; }
+
+    document.getElementById("card-zoom-moves").innerHTML = (card.moves||[]).map(m => {
+      const costStr  = m.cost && m.cost.length ? m.cost.join(" / ") : "コストなし";
+      const dmgStr   = m.damage > 0 ? `${m.damage}ダメージ` : "ダメージなし";
+      const descHtml = m.description ? `<div class="zoom-move-desc">${m.description}</div>` : "";
+      return `<div class="zoom-move">
+        <div class="zoom-move-name">${m.name}</div>
+        <div class="zoom-move-meta">${costStr} — ${dmgStr}</div>${descHtml}</div>`;
+    }).join("");
+
+    document.getElementById("card-zoom-modal").classList.add("show");
+  }
+
+  function showZoomByCard(encoded) {
+    try { showZoom(decodeData(encoded), null); } catch(e) { console.error(e); }
+  }
+  function showZoomByLive(encoded) {
+    try {
+      const pokemon = decodeData(encoded);
+      const base = POKEMON_CARDS.find(c => c.id === pokemon.id) || pokemon;
+      showZoom(base, pokemon);
+    } catch(e) { console.error(e); }
+  }
+  function closeZoom() { document.getElementById("card-zoom-modal").classList.remove("show"); }
+
+  // ── バトルログ ──
+  function showLog() {
+    document.getElementById("log-list").innerHTML =
+      (state?.log||[]).map(l=>`<div class="log-entry">${l}</div>`).join("");
+    document.getElementById("log-modal").classList.add("show");
+  }
+  function closeLog() { document.getElementById("log-modal").classList.remove("show"); }
+
+  // ── サーチモーダル ──
+  function openSearchModal() {
+    if (!state || !state.pendingContext) return;
+    const candidates = state.pendingContext.candidates || [];
+    document.getElementById("modal-desc").textContent = `ポケモン: ${candidates.length}枚`;
+    document.getElementById("modal-list").innerHTML = candidates.map(c => `
+      <div class="hand-card" onclick="ui.onSearchSelect('${c.uid}')" style="width:80px">
+        <img src="${c.image||''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${c.name}">
+        <div class="hand-card-placeholder" style="display:none">🃏</div>
+        <div class="hand-card-name">${c.name}</div>
+      </div>`).join("");
+    document.getElementById("search-modal").classList.add("show");
+  }
+  function onSearchSelect(uid) {
+    document.getElementById("search-modal").classList.remove("show");
+    engine.searchPokemonFromDeck(uid);
+  }
+  function closeSearchModal() { document.getElementById("search-modal").classList.remove("show"); }
+
+  // ── オーバーレイ ──
+  function showOverlay(title, msg) {
+    document.getElementById("overlay-title").textContent = title;
+    document.getElementById("overlay-msg").textContent   = msg;
+    document.getElementById("overlay").classList.add("show");
+  }
+  function closeOverlay() { document.getElementById("overlay").classList.remove("show"); }
+
+  init();
+  return {
+    startGame, onDraw, onEndTurn, onAttack,
+    onPlayBench, onCancel,
+    onSetupSelectActive, onSetupAddBench, onSetupComplete,
+    onTrainerUseConfirmed, onTrainerUseCancel,
+    onTrainerCancel, onTrainerTargetSelect, onTrainerCardSelect,
+    onYakitoriJudge, onYakisobaAnswer, onNipponSteelBonus, onNipponSteelBenchTarget,
+    onKanaboColor, onHanabiAnswer, onYasudaPeekDone, onBossOrderSelect,
+    onBenchConfirm, onCancelBench,
+    onAttackFromModal, onRetreatFromAction, closeActionModal,
+    onRecollectionAttack,
+    onEnergyTargetSelect, onCancelEnergySelect,
+    onEvolveTargetSelect, onCancelEvolveSelect,
+    onRetreatBenchSelect, onCancelRetreat,
+    onSelectHand, onSelectTarget, onSelectBenchTarget,
+    onUseAbility, onPRAnswer,
+    showLog, closeLog,
+    showZoomByCard, showZoomByLive, closeZoom,
+    openSearchModal, onSearchSelect, closeSearchModal,
+  };
+})();
+
+// Service Worker 登録
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then(() => console.log("SW registered"))
+      .catch((e) => console.warn("SW registration failed:", e));
+  });
+}
+</script>
+</body>
+</html>
