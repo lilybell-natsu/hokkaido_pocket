@@ -1,6 +1,6 @@
 <!-- ============================================================
      カードバトル index.html
-     Version : 1.9.5
+     Version : 1.9.6
      Updated : 2025-06-30
      ============================================================ -->
 <!DOCTYPE html>
@@ -373,13 +373,13 @@
 
 <!-- ヘッダー -->
 <header>
-  <h1>⚔️ カードバトル</h1>
+  <h1>?? カードバトル</h1>
   <div id="header-btns">
     <span id="turn-label">準備中</span>
     <button class="hbtn" id="btn-end" disabled onclick="ui.onEndTurn()">ターン終了</button>
-    <button class="hbtn" onclick="ui.showLog()">📋 ログ</button>
-    <button class="hbtn" onclick="ui.openTrashModal('player')">🗑 自分</button>
-    <button class="hbtn" onclick="ui.openTrashModal('cpu')">🗑 相手</button>
+    <button class="hbtn" onclick="ui.showLog()">  ログ</button>
+    <button class="hbtn" onclick="ui.openTrashModal('player')">  自分</button>
+    <button class="hbtn" onclick="ui.openTrashModal('cpu')">  相手</button>
   </div>
 </header>
 
@@ -393,7 +393,7 @@
         <div class="field-sublabel">バトル場</div>
         <div id="cpu-active-wrap"></div>
         <div style="font-size:9px;color:var(--muted);margin-top:2px">
-          デッキ:<span id="cpu-deck-count">—</span> 手札:<span id="cpu-hand-count">—</span>
+          デッキ:<span id="cpu-deck-count">?</span> 手札:<span id="cpu-hand-count">?</span>
         </div>
       </div>
       <div class="field-bench-wrap">
@@ -426,7 +426,7 @@
         <div class="field-sublabel">バトル場</div>
         <div id="player-active-wrap"></div>
         <div style="font-size:8px;color:var(--muted);margin-top:2px">
-          <span id="player-deck-count">—</span>枚
+          <span id="player-deck-count">?</span>枚
         </div>
       </div>
       <!-- ベンチ（縦並び） -->
@@ -455,7 +455,7 @@
 <!-- ベンチ出し確認モーダル -->
 <div class="modal-overlay" id="bench-confirm-modal">
   <div class="modal-box">
-    <h3>🟢 ベンチに出す</h3>
+    <h3>  ベンチに出す</h3>
     <p id="bench-confirm-desc" style="font-size:12px;color:var(--muted)"></p>
     <div class="modal-btns">
       <button class="btn primary" onclick="ui.onBenchConfirm()">ベンチに出す</button>
@@ -520,7 +520,7 @@
 <!-- トレーナーズ：相手手札確認モーダル（安田顕） -->
 <div class="modal-overlay" id="trainer-peek-modal">
   <div class="modal-box">
-    <h3>👁 相手の手札を見る</h3>
+    <h3>  相手の手札を見る</h3>
     <p id="trainer-peek-desc" style="font-size:11px;color:var(--muted)"></p>
     <div id="trainer-peek-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
     <div class="modal-btns" style="margin-top:8px">
@@ -532,7 +532,7 @@
 <!-- トレーナーズ：ボスの指令 ベンチ選択 -->
 <div class="modal-overlay" id="trainer-boss-modal">
   <div class="modal-box">
-    <h3>👑 ボスの指令</h3>
+    <h3>  ボスの指令</h3>
     <p style="font-size:11px;color:var(--muted)">相手のベンチポケモンを1匹選んでバトル場と入れ替えます</p>
     <div id="trainer-boss-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
     <div class="modal-btns" style="margin-top:8px">
@@ -544,7 +544,7 @@
 <!-- セットアップ：バトル場選択モーダル -->
 <div class="modal-overlay" id="setup-active-modal">
   <div class="modal-box">
-    <h3>🎮 ゲーム開始 — バトル場を選ぶ</h3>
+    <h3>  ゲーム開始 ? バトル場を選ぶ</h3>
     <p style="font-size:12px;color:var(--muted)">手札からたねポケモンを1体選んでバトル場に出してください</p>
     <div id="setup-active-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
   </div>
@@ -553,7 +553,7 @@
 <!-- セットアップ：ベンチ配置モーダル -->
 <div class="modal-overlay" id="setup-bench-modal">
   <div class="modal-box">
-    <h3>🎮 ゲーム開始 — ベンチ配置</h3>
+    <h3>  ゲーム開始 ? ベンチ配置</h3>
     <p style="font-size:12px;color:var(--muted)">手札のたねポケモンをベンチに出せます（任意・最大4体）</p>
     <div id="setup-bench-hand" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
     <div class="modal-btns" style="margin-top:10px">
@@ -565,7 +565,7 @@
 <!-- ドローポップアップ -->
 <div id="draw-popup">
   <div class="draw-box">
-    <h2>🃏 ターン開始</h2>
+    <h2>  ターン開始</h2>
     <p id="draw-turn-label"></p>
     <p>山札から1枚引いてください</p>
     <button class="btn primary" onclick="ui.onDraw()">カードを引く</button>
@@ -576,7 +576,7 @@
 <div id="card-zoom-modal" onclick="ui.closeZoom()">
   <div id="card-zoom-box" onclick="event.stopPropagation()">
     <img id="card-zoom-img" src="" alt="">
-    <div id="card-zoom-placeholder">🃏</div>
+    <div id="card-zoom-placeholder"> </div>
     <div id="card-zoom-info">
       <div id="card-zoom-name"></div>
       <div id="card-zoom-meta"></div>
@@ -591,7 +591,7 @@
 <!-- バトルログモーダル -->
 <div class="modal-overlay" id="log-modal">
   <div class="modal-box">
-    <h3>📋 バトルログ</h3>
+    <h3>  バトルログ</h3>
     <div id="log-list"></div>
     <div class="modal-btns">
       <button class="btn ghost" onclick="ui.closeLog()">閉じる</button>
@@ -602,7 +602,7 @@
 <!-- 進化先選択モーダル（進化元を選ぶ） -->
 <div class="modal-overlay" id="evolve-target-modal">
   <div class="modal-box">
-    <h3>🔄 進化元を選ぶ</h3>
+    <h3>  進化元を選ぶ</h3>
     <p id="evolve-target-desc" style="font-size:11px;color:var(--muted)"></p>
     <div id="evolve-target-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
     <div class="modal-btns" style="margin-top:8px">
@@ -614,7 +614,7 @@
 <!-- エネルギー付与先選択モーダル -->
 <div class="modal-overlay" id="energy-target-modal">
   <div class="modal-box">
-    <h3>⚡ エネルギーをつけるポケモンを選ぶ</h3>
+    <h3>? エネルギーをつけるポケモンを選ぶ</h3>
     <p style="font-size:11px;color:var(--muted)">バトル場またはベンチのポケモンを選んでください</p>
     <div id="energy-target-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
     <div class="modal-btns" style="margin-top:8px">
@@ -626,13 +626,13 @@
 <!-- 逃げる確認モーダル -->
 <div class="modal-overlay" id="action-modal">
   <div class="modal-box">
-    <h3 id="action-modal-title">⚔️ アクション</h3>
+    <h3 id="action-modal-title">?? アクション</h3>
     <p id="action-modal-desc" style="font-size:12px;color:var(--muted)"></p>
     <!-- ワザ選択リスト -->
     <div id="action-move-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px"></div>
     <!-- 逃げるボタン -->
     <div class="modal-btns" style="margin-top:8px">
-      <button class="btn ghost" id="action-retreat-btn" onclick="ui.onRetreatFromAction()">🏃 にげる</button>
+      <button class="btn ghost" id="action-retreat-btn" onclick="ui.onRetreatFromAction()">  にげる</button>
       <button class="btn ghost" onclick="ui.onCancelRetreat()">キャンセル</button>
     </div>
   </div>
@@ -641,7 +641,7 @@
 <!-- ベンチ選択モーダル（逃げる後の入れ替え） -->
 <div class="modal-overlay" id="retreat-bench-modal">
   <div class="modal-box">
-    <h3>🔄 入れ替えるポケモンを選ぶ</h3>
+    <h3>  入れ替えるポケモンを選ぶ</h3>
     <p style="font-size:11px;color:var(--muted)">ベンチから1体選んでバトル場に出してください</p>
     <div id="retreat-bench-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
     <div class="modal-btns" style="margin-top:8px">
@@ -653,7 +653,7 @@
 <!-- 登別市観光PRモーダル -->
 <div class="modal-overlay" id="pr-modal">
   <div class="modal-box">
-    <h3>🗺 登別市観光PR</h3>
+    <h3>  登別市観光PR</h3>
     <p>相手プレイヤーに観光名所を紹介しました。<br>相手は知っていましたか？</p>
     <div class="modal-btns">
       <button class="btn ghost"   onclick="ui.onPRAnswer(true)">知っていた</button>
@@ -665,7 +665,7 @@
 <!-- サーチモーダル（温泉街への集客） -->
 <div class="modal-overlay" id="search-modal">
   <div class="modal-box">
-    <h3>🔍 山札からポケモンを選ぶ</h3>
+    <h3>  山札からポケモンを選ぶ</h3>
     <p id="modal-desc" style="font-size:11px;color:var(--muted)"></p>
     <div class="modal-card-list" id="modal-list"></div>
     <div class="modal-btns">
@@ -677,7 +677,7 @@
 <!-- トラッシュ確認モーダル -->
 <div class="modal-overlay" id="trash-modal">
   <div class="modal-box">
-    <h3 id="trash-modal-title">🗑 トラッシュ</h3>
+    <h3 id="trash-modal-title">  トラッシュ</h3>
     <p id="trash-modal-count" style="font-size:11px;color:var(--muted)"></p>
     <div id="trash-list" style="display:flex;flex-direction:column;gap:2px;max-height:50vh;overflow-y:auto"></div>
     <div class="modal-btns">
@@ -691,7 +691,7 @@
   <div class="modal-box" style="text-align:center">
     <div class="hand-card" style="width:160px;margin:0 auto">
       <img id="trash-preview-img" src="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
-      <div class="hand-card-placeholder" style="display:none">🃏</div>
+      <div class="hand-card-placeholder" style="display:none"> </div>
     </div>
     <p id="trash-preview-name" style="font-size:13px;color:var(--text);font-weight:600;margin-top:8px"></p>
     <div class="modal-btns">
@@ -705,7 +705,7 @@
   <div class="modal-box" style="text-align:center">
     <div class="hand-card" style="width:180px;margin:0 auto">
       <img id="stadium-preview-img" src="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
-      <div class="hand-card-placeholder" style="display:none">🏟</div>
+      <div class="hand-card-placeholder" style="display:none"> </div>
     </div>
     <p id="stadium-preview-name" style="font-size:13px;color:var(--text);font-weight:600;margin-top:8px"></p>
     <p id="stadium-preview-desc" style="font-size:11px;color:var(--muted);line-height:1.5;margin-top:4px"></p>
@@ -728,10 +728,10 @@
 <script src="game.js"></script>
 <script>
 const TYPE_STYLE = {
-  "自然信仰": { bg: "#2e7d32", color: "#fff", icon: "🌿" },
-  "文化振興": { bg: "#1565c0", color: "#fff", icon: "🎭" },
-  "観光資源": { bg: "#b8860b", color: "#fff", icon: "⭐" },
-  "観光発展": { bg: "#bf360c", color: "#fff", icon: "🏗" },
+  "自然信仰": { bg: "#2e7d32", color: "#fff", icon: " " },
+  "文化振興": { bg: "#1565c0", color: "#fff", icon: " " },
+  "観光資源": { bg: "#b8860b", color: "#fff", icon: "?" },
+  "観光発展": { bg: "#bf360c", color: "#fff", icon: " " },
   "無":       { bg: "#555",    color: "#fff", icon: "◇"  },
 };
 
@@ -761,7 +761,7 @@ const ui = (() => {
     if (s.phase === PHASE.WAIT_TRAINER_BENCH_SELECT) openTrainerBossModal(s);
     if (s.phase === PHASE.GAME_OVER) {
       setTimeout(() => {
-        showOverlay(s.winner === "player" ? "あなたの勝ち！🎉" : "CPUの勝ち…💀", "お疲れ様でした");
+        showOverlay(s.winner === "player" ? "あなたの勝ち！ " : "CPUの勝ち… ", "お疲れ様でした");
       }, 700);
     }
   }
@@ -787,7 +787,7 @@ const ui = (() => {
       const stadiumCard = typeof TRAINER_CARDS !== "undefined"
         ? TRAINER_CARDS.find(c => c.effectKey === s.stadium) : null;
       document.getElementById("stadium-display").textContent =
-        stadiumCard ? `🏟 ${stadiumCard.name}` : `🏟 ${s.stadium}`;
+        stadiumCard ? `  ${stadiumCard.name}` : `  ${s.stadium}`;
       document.getElementById("stadium-desc").textContent =
         stadiumCard ? stadiumCard.description || "" : "";
       stadiumArea.style.display = "block";
@@ -827,7 +827,7 @@ const ui = (() => {
     wrap.innerHTML = `
       <div class="poke-slot active-card${selCls}${extraCls}" onclick="${clickFn}">
         ${pokeImgHtml(pokemon)}
-        <button class="zoom-btn" onclick="event.stopPropagation();ui.showZoomByLive('${pdata}')">🔍</button>
+        <button class="zoom-btn" onclick="event.stopPropagation();ui.showZoomByLive('${pdata}')"> </button>
         <div class="poke-name">${pokemon.name}${pokemon.isEX?'<span class="poke-ex-badge">eX</span>':''}</div>
         <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
         <div class="hp-text">${curHp}/${maxHp}</div>
@@ -854,7 +854,7 @@ const ui = (() => {
         <div class="bench-slot">
           <div class="poke-slot${selCls}${extraCls}" onclick="${clickFn}">
             ${pokeImgHtml(p)}
-            <button class="zoom-btn" onclick="event.stopPropagation();ui.showZoomByLive('${pdata}')">🔍</button>
+            <button class="zoom-btn" onclick="event.stopPropagation();ui.showZoomByLive('${pdata}')"> </button>
             <div class="poke-name">${p.name}${p.isEX?'<span class="poke-ex-badge">eX</span>':''}</div>
             <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
             ${energyHtml(p.attachedEnergy)}
@@ -867,7 +867,7 @@ const ui = (() => {
   function pokeImgHtml(p) {
     return `<img class="poke-img" src="${p.image||''}"
       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
-      <div class="poke-img-placeholder" style="display:none">🃏</div>`;
+      <div class="poke-img-placeholder" style="display:none"> </div>`;
   }
 
   function energyHtml(energies) {
@@ -884,7 +884,7 @@ const ui = (() => {
     const canUse = isPlayer && state && state.phase === PHASE.PLAYER_TURN && !used;
     return `<div class="ability-badge ${used?'used':''}"
       onclick="${canUse?`event.stopPropagation();ui.onUseAbility('${pokemon.uid}')`:``}">
-      ✨${pokemon.ability.name}</div>`;
+      ?${pokemon.ability.name}</div>`;
   }
 
   // ── 手札 ──
@@ -911,8 +911,8 @@ const ui = (() => {
       return `
         <div class="hand-card${selected}" onclick="ui.onSelectHand('${c.uid}')">
           <img src="${c.image||''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${c.name}">
-          <div class="hand-card-placeholder" style="display:none">${isEnergy?'⚡':'🃏'}</div>
-          <button class="zoom-btn" onclick="event.stopPropagation();ui.showZoomByCard('${cdata}')">🔍</button>
+          <div class="hand-card-placeholder" style="display:none">${isEnergy?'?':' '}</div>
+          <button class="zoom-btn" onclick="event.stopPropagation();ui.showZoomByCard('${cdata}')"> </button>
           <span class="hbadge" style="${badgeSt}">${badge}</span>
           <div class="hand-card-name">${c.name}</div>
         </div>`;
@@ -934,7 +934,7 @@ const ui = (() => {
     // 残りサイド枚数のみ常時表示
     const moveBtns  = document.getElementById("move-buttons");
     const prizeLeft = s.player.prizes.length;
-    moveBtns.innerHTML = `<div class="side-counter" title="残りサイド">🃏×${prizeLeft}</div>`;
+    moveBtns.innerHTML = `<div class="side-counter" title="残りサイド"> ×${prizeLeft}</div>`;
   }
 
   function renderDrawPopup(s) {
@@ -958,7 +958,7 @@ const ui = (() => {
         <div class="poke-slot" style="padding:5px;position:relative">
           <img class="poke-img" src="${c.image||''}"
             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${c.name}">
-          <div class="poke-img-placeholder" style="display:none">🃏</div>
+          <div class="poke-img-placeholder" style="display:none"> </div>
           <span class="hbadge" style="${badgeSt}">${badge}</span>
           <div class="poke-name" style="font-size:8px;margin-top:4px">${c.name}</div>
           <div style="font-size:8px;color:var(--muted)">HP:${c.hp}</div>
@@ -1082,7 +1082,7 @@ const ui = (() => {
       const curHp = GameEngine.currentHp(p);
       const ratio = curHp / maxHp;
       const hpCls = ratio > 0.5 ? "" : ratio > 0.25 ? "mid" : "low";
-      const loc   = state.player.active && state.player.active.uid === p.uid ? "⚔️" : "🪑";
+      const loc   = state.player.active && state.player.active.uid === p.uid ? "??" : " ";
       const cb    = ctx.type === "nippon_steel_bench_energy"
         ? `ui.onNipponSteelBenchTarget('${p.uid}')`
         : `ui.onTrainerTargetSelect('${p.uid}')`;
@@ -1091,7 +1091,7 @@ const ui = (() => {
           <div class="poke-slot" style="padding:4px">
             <img class="poke-img" src="${p.image||''}"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
-            <div class="poke-img-placeholder" style="display:none">🃏</div>
+            <div class="poke-img-placeholder" style="display:none"> </div>
             <div class="poke-name" style="font-size:8px">${loc}${p.name}</div>
             <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
             <div class="hp-text">${curHp}/${maxHp}</div>
@@ -1139,9 +1139,9 @@ const ui = (() => {
           <div class="poke-slot" style="padding:4px;${border}">
             <img class="poke-img" src="${c.image||''}"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${c.name}">
-            <div class="poke-img-placeholder" style="display:none">${isEnergy?'⚡':'🃏'}</div>
+            <div class="poke-img-placeholder" style="display:none">${isEnergy?'?':' '}</div>
             <div class="poke-name" style="font-size:8px">${c.name}</div>
-            ${isSelected ? '<div style="font-size:8px;color:var(--accent)">✓ 選択中</div>' : ''}
+            ${isSelected ? '<div style="font-size:8px;color:var(--accent)">? 選択中</div>' : ''}
           </div>
         </div>`;
     }).join("");
@@ -1179,7 +1179,7 @@ const ui = (() => {
 
     switch (ctx.type) {
       case "yakitori_price":
-        document.getElementById("trainer-answer-title").textContent = "🍗 室蘭やきとり 価格クイズ";
+        document.getElementById("trainer-answer-title").textContent = "  室蘭やきとり 価格クイズ";
         document.getElementById("trainer-answer-desc").textContent  =
           "相手プレイヤーへ：やきとりの一平の焼きとり1本の価格を入力してください";
         content_el.innerHTML = `
@@ -1201,7 +1201,7 @@ const ui = (() => {
         break;
 
       case "yakisoba_check":
-        document.getElementById("trainer-answer-title").textContent = "🍜 閻魔焼きそばチェック";
+        document.getElementById("trainer-answer-title").textContent = "  閻魔焼きそばチェック";
         document.getElementById("trainer-answer-desc").textContent  = "今日、焼きそばを食べましたか？";
         content_el.innerHTML = "";
         btns_el.innerHTML = `
@@ -1210,7 +1210,7 @@ const ui = (() => {
         break;
 
       case "nippon_steel_bonus":
-        document.getElementById("trainer-answer-title").textContent = "🏭 日本製鉄 追加効果";
+        document.getElementById("trainer-answer-title").textContent = "  日本製鉄 追加効果";
         document.getElementById("trainer-answer-desc").textContent  =
           "日本製鉄の関連企業に就労している親族がいますか？";
         content_el.innerHTML = "";
@@ -1220,18 +1220,18 @@ const ui = (() => {
         break;
 
       case "kanabo_color":
-        document.getElementById("trainer-answer-title").textContent = "🔴🔵 金棒 着衣色";
+        document.getElementById("trainer-answer-title").textContent = "   金棒 着衣色";
         document.getElementById("trainer-answer-desc").textContent  =
           "相手プレイヤーの着ている色を申告してください";
         content_el.innerHTML = "";
         btns_el.innerHTML = `
-          <button class="btn danger"  onclick="ui.onKanaboColor('red')">🔴 赤</button>
-          <button class="btn blue"    onclick="ui.onKanaboColor('blue')">🔵 青</button>
+          <button class="btn danger"  onclick="ui.onKanaboColor('red')">  赤</button>
+          <button class="btn blue"    onclick="ui.onKanaboColor('blue')">  青</button>
           <button class="btn ghost"   onclick="ui.onKanaboColor('other')">その他</button>`;
         break;
 
       case "hanabi_check":
-        document.getElementById("trainer-answer-title").textContent = "🎆 室蘭満点花火";
+        document.getElementById("trainer-answer-title").textContent = "  室蘭満点花火";
         document.getElementById("trainer-answer-desc").textContent  =
           "今年花火大会に行きましたか？（自己申告）";
         content_el.innerHTML = "";
@@ -1285,7 +1285,7 @@ const ui = (() => {
           <div class="poke-slot" style="padding:4px">
             <img class="poke-img" src="${c.image||''}"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${c.name}">
-            <div class="poke-img-placeholder" style="display:none">${isEnergy?'⚡':'🃏'}</div>
+            <div class="poke-img-placeholder" style="display:none">${isEnergy?'?':' '}</div>
             <div class="poke-name" style="font-size:8px">${c.name}</div>
           </div>
         </div>`;
@@ -1313,7 +1313,7 @@ const ui = (() => {
             <div class="poke-slot" style="padding:4px">
               <img class="poke-img" src="${p.image||''}"
                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
-              <div class="poke-img-placeholder" style="display:none">🃏</div>
+              <div class="poke-img-placeholder" style="display:none"> </div>
               <div class="poke-name" style="font-size:8px">${p.name}</div>
               <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
               <div class="hp-text">${curHp}/${maxHp}</div>
@@ -1465,7 +1465,7 @@ const ui = (() => {
           <div class="poke-slot" style="padding:4px">
             <img class="poke-img" src="${p.image||''}"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
-            <div class="poke-img-placeholder" style="display:none">🃏</div>
+            <div class="poke-img-placeholder" style="display:none"> </div>
             <div class="poke-name" style="font-size:8px">${p.name}</div>
             <div style="font-size:7px;color:var(--accent2);margin-top:1px">${loc}</div>
             <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
@@ -1519,7 +1519,7 @@ const ui = (() => {
     if (!state) return;
     const active = state.player.active;
     const tf     = state.turnFlags;
-    document.getElementById("action-modal-title").textContent = "⚔️ " + active.name;
+    document.getElementById("action-modal-title").textContent = "?? " + active.name;
     document.getElementById("action-modal-desc").textContent  = "";
 
     const moveList = document.getElementById("action-move-list");
@@ -1538,7 +1538,7 @@ const ui = (() => {
         return "<button class='" + btnCls + "' style='text-align:left;padding:10px 12px;width:100%' "
           + (canUse ? "" : "disabled ") + "onclick='ui.onAttackFromModal(" + i + ")'>"
           + "<div style='font-size:13px;font-weight:700'>" + m.name + "</div>"
-          + "<div style='font-size:10px;margin-top:2px;color:" + (canUse ? "#0006" : "var(--muted)") + "'>" + costStr + " — " + dmgStr + "</div>"
+          + "<div style='font-size:10px;margin-top:2px;color:" + (canUse ? "#0006" : "var(--muted)") + "'>" + costStr + " ? " + dmgStr + "</div>"
           + descHtml + "</button>";
       });
       // レコレクション追加ワザ
@@ -1547,7 +1547,7 @@ const ui = (() => {
         moveBtns.push(
           "<button class='btn blue' style='text-align:left;padding:10px 12px;width:100%' onclick='ui.onRecollectionAttack()'>"
           + "<div style='font-size:13px;font-weight:700'>" + tm.name + " <span style=\"font-size:10px;background:var(--purple);color:#fff;padding:1px 4px;border-radius:3px\">道具</span></div>"
-          + "<div style='font-size:10px;margin-top:2px;color:#fff9'>" + (tm.cost.join(" / ") || "コストなし") + " — 効果のみ</div>"
+          + "<div style='font-size:10px;margin-top:2px;color:#fff9'>" + (tm.cost.join(" / ") || "コストなし") + " ? 効果のみ</div>"
           + "<div style='font-size:10px;color:var(--accent);margin-top:3px;line-height:1.4'>" + tm.description + "</div>"
           + "</button>"
         );
@@ -1600,7 +1600,7 @@ const ui = (() => {
           <div class="poke-slot" style="padding:4px">
             <img class="poke-img" src="${p.image||''}"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
-            <div class="poke-img-placeholder" style="display:none">🃏</div>
+            <div class="poke-img-placeholder" style="display:none"> </div>
             <div class="poke-name" style="font-size:8px">${p.name}</div>
             <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
             <div class="hp-text">${curHp}/${maxHp}</div>
@@ -1630,8 +1630,8 @@ const ui = (() => {
     const list = document.getElementById("energy-target-list");
     // バトル場とベンチを分けて表示
     const sections = [
-      { label: "⚔️ バトル場", pokemons: s.active ? [s.active] : [] },
-      { label: "🪑 ベンチ",   pokemons: s.bench.filter(Boolean) },
+      { label: "?? バトル場", pokemons: s.active ? [s.active] : [] },
+      { label: "  ベンチ",   pokemons: s.bench.filter(Boolean) },
     ];
     list.innerHTML = sections.map(sec => {
       if (sec.pokemons.length === 0) return "";
@@ -1645,7 +1645,7 @@ const ui = (() => {
             <div class="poke-slot" style="padding:4px;border-color:${sec.label.includes("バトル") ? "var(--accent)" : "var(--border)"}">
               <img class="poke-img" src="${p.image||''}"
                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
-              <div class="poke-img-placeholder" style="display:none">🃏</div>
+              <div class="poke-img-placeholder" style="display:none"> </div>
               <div class="poke-name" style="font-size:8px">${p.name}</div>
               <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
               <div class="hp-text">${curHp}/${maxHp}</div>
@@ -1695,7 +1695,7 @@ const ui = (() => {
       `${card.name}${card.isEX?' <span style="background:var(--purple);color:#fff;font-size:10px;padding:1px 5px;border-radius:3px">eX</span>':''}
        <span style="font-size:10px;color:var(--muted)">[${stageStr}]</span>`;
     document.getElementById("card-zoom-meta").textContent =
-      `タイプ: ${card.type||"—"}　にげる: ${card.retreat??0}`;
+      `タイプ: ${card.type||"?"}　にげる: ${card.retreat??0}`;
 
     const hpEl = document.getElementById("card-zoom-hp");
     if (liveData) {
@@ -1711,7 +1711,7 @@ const ui = (() => {
     const abilityEl = document.getElementById("card-zoom-ability");
     if (card.ability) {
       abilityEl.style.display = "block";
-      abilityEl.innerHTML = `<div class="zoom-ability-name">✨ ${card.ability.name}</div>
+      abilityEl.innerHTML = `<div class="zoom-ability-name">? ${card.ability.name}</div>
         <div class="zoom-ability-desc">${card.ability.description}</div>`;
     } else { abilityEl.style.display = "none"; }
 
@@ -1721,7 +1721,7 @@ const ui = (() => {
       const descHtml = m.description ? `<div class="zoom-move-desc">${m.description}</div>` : "";
       return `<div class="zoom-move">
         <div class="zoom-move-name">${m.name}</div>
-        <div class="zoom-move-meta">${costStr} — ${dmgStr}</div>${descHtml}</div>`;
+        <div class="zoom-move-meta">${costStr} ? ${dmgStr}</div>${descHtml}</div>`;
     }).join("");
 
     document.getElementById("card-zoom-modal").classList.add("show");
@@ -1755,7 +1755,7 @@ const ui = (() => {
     document.getElementById("modal-list").innerHTML = candidates.map(c => `
       <div class="hand-card" onclick="ui.onSearchSelect('${c.uid}')" style="width:80px">
         <img src="${c.image||''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${c.name}">
-        <div class="hand-card-placeholder" style="display:none">🃏</div>
+        <div class="hand-card-placeholder" style="display:none"> </div>
         <div class="hand-card-name">${c.name}</div>
       </div>`).join("");
     document.getElementById("search-modal").classList.add("show");
@@ -1783,7 +1783,7 @@ const ui = (() => {
     if (!state) return;
     const list = state[side].discard || [];
     document.getElementById("trash-modal-title").textContent =
-      (side === "player" ? "🗑 自分のトラッシュ" : "🗑 相手のトラッシュ");
+      (side === "player" ? "  自分のトラッシュ" : "  相手のトラッシュ");
     document.getElementById("trash-modal-count").textContent = `${list.length}枚（古い順）`;
     document.getElementById("trash-list").innerHTML = list.map((c, i) => `
       <div class="trash-entry" onclick="ui.openTrashPreview('${side}', ${i})">
@@ -1855,11 +1855,32 @@ const ui = (() => {
   };
 })();
 
-// Service Worker 登録
+// Service Worker 登録（新バージョン検出時は自動でリロードして反映）
 if ("serviceWorker" in navigator) {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js")
-      .then(() => console.log("SW registered"))
+      .then((reg) => {
+        console.log("SW registered");
+        // 新しいSWが見つかったら即座に有効化させる
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              newWorker.postMessage({ type: "SKIP_WAITING" });
+            }
+          });
+        });
+        // ページ読み込みのたびに更新チェック
+        reg.update();
+      })
       .catch((e) => console.warn("SW registration failed:", e));
   });
 }
