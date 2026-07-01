@@ -5,7 +5,7 @@
 // ============================================================
 
 // ============================================================
-// game.js  —  ゲームロジック
+// game.js  ?  ゲームロジック
 // ============================================================
 
 const PHASE = {
@@ -1279,7 +1279,7 @@ class GameEngine {
   _endGame(winner) {
     this.state.phase  = PHASE.GAME_OVER;
     this.state.winner = winner;
-    this._log(winner === "player" ? "🎉 あなたの勝ちです！" : "💀 CPUの勝ちです…");
+    this._log(winner === "player" ? "  あなたの勝ちです！" : "  CPUの勝ちです…");
   }
 
   _log(msg) {
@@ -1288,7 +1288,7 @@ class GameEngine {
   }
 
   _err(msg) {
-    this._log(`⚠️ ${msg}`);
+    this._log(`?? ${msg}`);
     this._notify();
     return false;
   }
