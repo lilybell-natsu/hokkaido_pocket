@@ -1,6 +1,6 @@
 // ============================================================
 // カードバトル game.js
-// Version : 1.4.4
+// Version : 1.4.5
 // Updated : 2025-06-30
 // ============================================================
 
@@ -534,12 +534,14 @@ class GameEngine {
         cs.deck.push(...cs.hand); cs.hand = []; cs.deck = this._shuffle(cs.deck);
         for (let i = 0; i < 3 && s.deck.length; i++) s.hand.push(s.deck.shift());
         for (let i = 0; i < 3 && cs.deck.length; i++) cs.hand.push(cs.deck.shift());
+        s.discard.push(card);
         this._log("岸本将：お互い手札を戻し、それぞれ3枚ドロー！");
         this._notify(); break;
       }
       case "support_muroran_univ": {
         s.discard.push(...s.hand); s.hand = [];
         for (let i = 0; i < 6 && s.deck.length; i++) s.hand.push(s.deck.shift());
+        s.discard.push(card);
         this._log("博士の研究：手札をトラッシュして6枚ドロー！");
         this._notify(); break;
       }
@@ -571,6 +573,7 @@ class GameEngine {
         this._notify(); break;
       }
       default:
+        this.state.player.discard.push(card);
         this._log(`${card.name} を使用した。`);
         this._notify();
     }
@@ -634,6 +637,7 @@ class GameEngine {
         this._notify(); break;
       }
       default:
+        this.state.player.discard.push(card);
         this._log(`${card.name} を使用した。`);
         this._notify();
     }
@@ -662,6 +666,7 @@ class GameEngine {
   nkbSousenkyoSelect(targetUid) {
     if (this.state.phase !== PHASE.WAIT_TRAINER_TARGET) return;
     const s = this.state.player;
+    const ctx = this.state.pendingContext;
     const target = this._findPokemonByUid("player", targetUid);
     if (!target || target.name !== "飼育されているクマ") return this._err("飼育されているクマを選んでください");
     const inahoCard = POKEMON_CARDS.find(c => c.id === "p005");
@@ -672,6 +677,7 @@ class GameEngine {
     this._log("NKB総選挙：飼育されているクマ が 選抜NKB 神7:イナホ に進化！");
     const boss = [s.active, ...s.bench].find(p => p && p.name === "飼育された群れのボス");
     if (boss) { boss._hpDoubled = true; this._log("飼育された群れのボス のHPが2倍になった！"); }
+    if (ctx?.card) s.discard.push(ctx.card);
     this.state.pendingContext = null;
     this.state.phase = PHASE.PLAYER_TURN;
     this._notify();
@@ -680,10 +686,12 @@ class GameEngine {
   kumaBokujyoSelect(uid) {
     if (this.state.phase !== PHASE.WAIT_TRAINER_SELECT) return;
     const s = this.state.player;
+    const ctx = this.state.pendingContext;
     const idx = s.deck.findIndex(c => c.uid === uid);
     if (idx === -1) return this._err("山札にそのカードはありません");
     const card = s.deck.splice(idx, 1)[0];
     s.hand.push(card); s.deck = this._shuffle(s.deck);
+    if (ctx?.card) s.discard.push(ctx.card);
     this._log(`登別クマ牧場：${card.name} を手札に加えた。山札をシャッフルした。`);
     this.state.pendingContext = null; this.state.phase = PHASE.PLAYER_TURN; this._notify();
   }
@@ -706,6 +714,7 @@ class GameEngine {
 
   yakitoriPriceAnswer(inputPrice, benchTargetUid) {
     if (this.state.phase !== PHASE.WAIT_TRAINER_ANSWER) return;
+    const ctx = this.state.pendingContext;
     const correct = parseInt(inputPrice, 10) === 150;
     if (correct && benchTargetUid) {
       const bTarget = this.state.cpu.bench.find(p => p && p.uid === benchTargetUid);
@@ -715,33 +724,38 @@ class GameEngine {
     } else {
       this._log("不正解（正解は150円）。追加効果なし。");
     }
+    if (ctx?.card) this.state.player.discard.push(ctx.card);
     this.state.pendingContext = null; this.state.phase = PHASE.PLAYER_TURN; this._notify();
   }
 
   yakisobaTarget(targetUid) {
     if (this.state.phase !== PHASE.WAIT_TRAINER_TARGET) return;
+    const ctx = this.state.pendingContext;
     const target = this._findPokemonByUid("player", targetUid);
     if (!target) return this._err("ポケモンが見つかりません");
     target.damage = Math.max(0, target.damage - 50);
     this._log(`登別閻魔焼きそば：${target.name} のHPを50回復！`);
-    this.state.pendingContext = { type: "yakisoba_check", targetUid };
+    this.state.pendingContext = { type: "yakisoba_check", card: ctx?.card, targetUid };
     this.state.phase = PHASE.WAIT_TRAINER_ANSWER; this._notify();
   }
 
   yakisobaAnswer(ate) {
     if (this.state.phase !== PHASE.WAIT_TRAINER_ANSWER) return;
+    const ctx = this.state.pendingContext;
+    const s = this.state.player;
     if (ate) {
-      const s = this.state.player;
       [s.active, ...s.bench].filter(Boolean).forEach(p => { p.damage = Math.max(0, p.damage - 30); });
       this._log("焼きそば食べた！ベンチポケモン全員のHPも30回復！");
     } else {
       this._log("焼きそばなし。追加回復なし。");
     }
+    if (ctx?.card) s.discard.push(ctx.card);
     this.state.pendingContext = null; this.state.phase = PHASE.PLAYER_TURN; this._notify();
   }
 
   nipponSteelSelectEnergy(uid, side) {
     if (this.state.phase !== PHASE.WAIT_TRAINER_SELECT) return;
+    const ctx = this.state.pendingContext;
     const s = this.state[side];
     const idx = s.discard.findIndex(c => c.uid === uid);
     if (idx === -1) return this._err("トラッシュにそのカードはありません");
@@ -756,34 +770,41 @@ class GameEngine {
       cpu.active.attachedEnergy.push(cpuE);
       this._log(`日本製鉄（CPU）：${cpu.active.name} にエネルギーをつけた。`);
     }
-    this.state.pendingContext = { type: "nippon_steel_bonus" };
+    this.state.pendingContext = { type: "nippon_steel_bonus", card: ctx?.card };
     this.state.phase = PHASE.WAIT_TRAINER_ANSWER; this._notify();
   }
 
   nipponSteelBonusAnswer(has) {
     if (this.state.phase !== PHASE.WAIT_TRAINER_ANSWER) return;
+    const ctx = this.state.pendingContext;
     if (has) {
       const s = this.state.player;
       const benches = s.bench.filter(Boolean);
       if (benches.length > 0 && s.discard.some(c => c.cardType === "energy")) {
-        this.state.pendingContext = { type: "nippon_steel_bench_energy", candidates: benches };
+        this.state.pendingContext = { type: "nippon_steel_bench_energy", card: ctx?.card, candidates: benches };
         this.state.phase = PHASE.WAIT_TRAINER_TARGET; this._notify(); return;
       }
       this._log("追加効果：トラッシュにエネルギーなし / ベンチなし。");
     } else {
       this._log("追加効果なし。");
     }
+    if (ctx?.card) this.state.player.discard.push(ctx.card);
     this.state.pendingContext = null; this.state.phase = PHASE.PLAYER_TURN; this._notify();
   }
 
   nipponSteelBenchEnergyAttach(benchUid, energyUid) {
+    const ctx = this.state.pendingContext;
     const s = this.state.player;
     const target = s.bench.find(p => p && p.uid === benchUid);
     const eIdx = s.discard.findIndex(c => c.uid === energyUid);
-    if (!target || eIdx === -1) { this.state.phase = PHASE.PLAYER_TURN; this._notify(); return; }
+    if (!target || eIdx === -1) {
+      if (ctx?.card) s.discard.push(ctx.card);
+      this.state.pendingContext = null; this.state.phase = PHASE.PLAYER_TURN; this._notify(); return;
+    }
     const energy = s.discard.splice(eIdx, 1)[0];
     target.attachedEnergy.push(energy);
     this._log(`${target.name} にエネルギーをつけた！`);
+    if (ctx?.card) s.discard.push(ctx.card);
     this.state.pendingContext = null; this.state.phase = PHASE.PLAYER_TURN; this._notify();
   }
 
@@ -800,6 +821,7 @@ class GameEngine {
       const eIdx = s.deck.findIndex(c => c.cardType === "energy");
       if (eIdx !== -1) { const e = s.deck.splice(eIdx, 1)[0]; s.hand.push(e); this._log(`白鳥大橋（追加）：${e.name} も手札に加えた。`); s.deck = this._shuffle(s.deck); }
     }
+    if (ctx?.card) s.discard.push(ctx.card);
     this.state.pendingContext = null; this.state.phase = PHASE.PLAYER_TURN; this._notify();
   }
 
@@ -824,6 +846,7 @@ class GameEngine {
       });
       s.deck = this._shuffle(s.deck);
       for (let i = 0; i < 2 && s.deck.length; i++) s.hand.push(s.deck.shift());
+      if (ctx.card) s.discard.push(ctx.card);
       this._log("鷲別神社：3枚を山札に戻し、2枚ドロー！");
       this.state.pendingContext = null; this.state.phase = PHASE.PLAYER_TURN;
     }
@@ -833,6 +856,7 @@ class GameEngine {
   hanabiAnswer(went) {
     if (this.state.phase !== PHASE.WAIT_TRAINER_ANSWER) return;
     const s = this.state.player;
+    const ctx = this.state.pendingContext;
     const count = went ? 4 : 3;
     let added = 0;
     for (let i = 0; added < count && s.deck.length; ) {
@@ -841,22 +865,27 @@ class GameEngine {
       s.hand.push(s.deck.splice(idx, 1)[0]); added++;
     }
     s.deck = this._shuffle(s.deck);
+    if (ctx?.card) s.discard.push(ctx.card);
     this._log(`室蘭満点花火：エネルギーを${added}枚手札に加えた！${went ? "（花火ボーナス+1）" : ""}`);
     this.state.pendingContext = null; this.state.phase = PHASE.PLAYER_TURN; this._notify();
   }
 
   yasudaPeekDone() {
+    const ctx = this.state.pendingContext;
+    if (ctx?.card) this.state.player.discard.push(ctx.card);
     this.state.pendingContext = null; this.state.phase = PHASE.PLAYER_TURN; this._notify();
   }
 
   bossOrderSelect(benchUid) {
     if (this.state.phase !== PHASE.WAIT_TRAINER_BENCH_SELECT) return;
+    const ctx = this.state.pendingContext;
     const cpu = this.state.cpu;
     const bi = cpu.bench.findIndex(p => p && p.uid === benchUid);
     if (bi === -1) return this._err("ベンチのポケモンを選んでください");
     const newActive = cpu.bench.splice(bi, 1)[0];
     if (cpu.active) cpu.bench.push(cpu.active);
     cpu.active = newActive;
+    if (ctx?.card) this.state.player.discard.push(ctx.card);
     this._log(`ボスの指令：${newActive.name} をバトル場に引きずり出した！`);
     this.state.pendingContext = null; this.state.phase = PHASE.PLAYER_TURN; this._notify();
   }
