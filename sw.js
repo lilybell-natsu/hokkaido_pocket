@@ -1,10 +1,10 @@
 // ============================================================
 // カードバトル sw.js
-// Version : 1.0.0
+// Version : 1.1.0
 // Updated : 2025-06-30
 // ============================================================
 
-const CACHE_NAME = "hduel-v1.4.0";
+const CACHE_NAME = "hduel-v1.4.4";
 
 const STATIC_FILES = [
   "./index.html",
@@ -25,6 +25,13 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
+// メッセージ受信：即座に新SWへ切り替え
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 // アクティベート：古いキャッシュを削除
 self.addEventListener("activate", (event) => {
   event.waitUntil(
@@ -39,12 +46,17 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// フェッチ：キャッシュ優先（cards/ 画像はネットワーク優先）
+// フェッチ
+// index.html / game.js / card_data.js はネットワーク優先（常に最新を反映、失敗時のみキャッシュ）
+// cards/ 配下の画像もネットワーク優先（なければキャッシュ）
+// それ以外（manifest.json・アイコン等）はキャッシュ優先
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
+  const isCoreFile = /\/(index\.html|game\.js|card_data\.js)$/.test(url.pathname)
+    || url.pathname.endsWith("/");
+  const isCardImage = url.pathname.includes("/cards/");
 
-  // cards/ 配下の画像はネットワーク優先（なければキャッシュ）
-  if (url.pathname.includes("/cards/")) {
+  if (isCoreFile || isCardImage) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
