@@ -1,6 +1,6 @@
 <!-- ============================================================
      カードバトル index.html
-     Version : 1.9.6
+     Version : 1.10.1
      Updated : 2025-06-30
      ============================================================ -->
 <!DOCTYPE html>
@@ -189,6 +189,21 @@
     border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 14px;
   }
   .hand-card-name { margin-top: 2px; color: var(--text); line-height: 1.2; font-size: 7px; }
+
+  /* ── プレビュー専用カード（トラッシュ・スタジアム確認用） ── */
+  .preview-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 3px; position: relative;
+  }
+  .preview-card img {
+    width: 100%; aspect-ratio: 2/3; object-fit: cover;
+    border-radius: 2px; background: var(--bg); display: block;
+  }
+  .preview-card-placeholder {
+    width: 100%; aspect-ratio: 2/3; background: var(--bg);
+    border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 28px;
+  }
+
   .hbadge {
     position: absolute; top: 2px; right: 2px;
     background: var(--accent); color: #000; font-size: 6px; font-weight: 700;
@@ -455,7 +470,10 @@
 <!-- ベンチ出し確認モーダル -->
 <div class="modal-overlay" id="bench-confirm-modal">
   <div class="modal-box">
-    <h3>  ベンチに出す</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <h3 style="margin:0">  ベンチに出す</h3>
+      <button class="zoom-btn" style="position:static;top:auto;left:auto;flex-shrink:0" onclick="ui.showBenchConfirmZoom()"> </button>
+    </div>
     <p id="bench-confirm-desc" style="font-size:12px;color:var(--muted)"></p>
     <div class="modal-btns">
       <button class="btn primary" onclick="ui.onBenchConfirm()">ベンチに出す</button>
@@ -538,6 +556,27 @@
     <div class="modal-btns" style="margin-top:8px">
       <button class="btn ghost" onclick="ui.onTrainerCancel()">キャンセル</button>
     </div>
+  </div>
+</div>
+
+<!-- レコレクション：ベンチポケモン選択 -->
+<div class="modal-overlay" id="recollection-bench-modal">
+  <div class="modal-box">
+    <h3>  レコレクション：ペンギンの羽</h3>
+    <p id="recollection-bench-desc" style="font-size:11px;color:var(--muted)"></p>
+    <div id="recollection-bench-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+    <div class="modal-btns" style="margin-top:8px">
+      <button class="btn primary" id="recollection-finish-btn" onclick="ui.onRecollectionFinish()">これで終了する</button>
+    </div>
+  </div>
+</div>
+
+<!-- レコレクション：進化先選択 -->
+<div class="modal-overlay" id="recollection-evolve-modal">
+  <div class="modal-box">
+    <h3 id="recollection-evolve-title">  進化先を選ぶ</h3>
+    <p id="recollection-evolve-desc" style="font-size:11px;color:var(--muted)"></p>
+    <div id="recollection-evolve-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
   </div>
 </div>
 
@@ -626,7 +665,10 @@
 <!-- 逃げる確認モーダル -->
 <div class="modal-overlay" id="action-modal">
   <div class="modal-box">
-    <h3 id="action-modal-title">?? アクション</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <h3 id="action-modal-title" style="margin:0">?? アクション</h3>
+      <button class="zoom-btn" id="action-modal-zoom-btn" style="position:static;top:auto;left:auto;flex-shrink:0" onclick="ui.showActionModalZoom()"> </button>
+    </div>
     <p id="action-modal-desc" style="font-size:12px;color:var(--muted)"></p>
     <!-- ワザ選択リスト -->
     <div id="action-move-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px"></div>
@@ -689,9 +731,9 @@
 <!-- トラッシュ：カード画像プレビューモーダル -->
 <div class="modal-overlay" id="trash-preview-modal">
   <div class="modal-box" style="text-align:center">
-    <div class="hand-card" style="width:160px;margin:0 auto">
+    <div class="preview-card" style="width:160px;margin:0 auto">
       <img id="trash-preview-img" src="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
-      <div class="hand-card-placeholder" style="display:none"> </div>
+      <div class="preview-card-placeholder" style="display:none"> </div>
     </div>
     <p id="trash-preview-name" style="font-size:13px;color:var(--text);font-weight:600;margin-top:8px"></p>
     <div class="modal-btns">
@@ -703,9 +745,9 @@
 <!-- スタジアム：カード画像プレビューモーダル -->
 <div class="modal-overlay" id="stadium-preview-modal">
   <div class="modal-box" style="text-align:center">
-    <div class="hand-card" style="width:180px;margin:0 auto">
+    <div class="preview-card" style="width:180px;margin:0 auto">
       <img id="stadium-preview-img" src="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
-      <div class="hand-card-placeholder" style="display:none"> </div>
+      <div class="preview-card-placeholder" style="display:none"> </div>
     </div>
     <p id="stadium-preview-name" style="font-size:13px;color:var(--text);font-weight:600;margin-top:8px"></p>
     <p id="stadium-preview-desc" style="font-size:11px;color:var(--muted);line-height:1.5;margin-top:4px"></p>
@@ -759,6 +801,8 @@ const ui = (() => {
     if (s.phase === PHASE.WAIT_TRAINER_SELECT)       openTrainerSelectModal(s);
     if (s.phase === PHASE.WAIT_TRAINER_ANSWER)       openTrainerAnswerModal(s);
     if (s.phase === PHASE.WAIT_TRAINER_BENCH_SELECT) openTrainerBossModal(s);
+    if (s.phase === PHASE.WAIT_RECOLLECTION_BENCH)   openRecollectionBenchModal(s);
+    if (s.phase === PHASE.WAIT_RECOLLECTION_EVOLVE)  openRecollectionEvolveModal(s);
     if (s.phase === PHASE.GAME_OVER) {
       setTimeout(() => {
         showOverlay(s.winner === "player" ? "あなたの勝ち！ " : "CPUの勝ち… ", "お疲れ様でした");
@@ -1222,12 +1266,12 @@ const ui = (() => {
       case "kanabo_color":
         document.getElementById("trainer-answer-title").textContent = "   金棒 着衣色";
         document.getElementById("trainer-answer-desc").textContent  =
-          "相手プレイヤーの着ている色を申告してください";
+          "相手プレイヤーの着ている色を申告してください（赤・青のどちらでもない場合は「なし」）";
         content_el.innerHTML = "";
         btns_el.innerHTML = `
           <button class="btn danger"  onclick="ui.onKanaboColor('red')">  赤</button>
           <button class="btn blue"    onclick="ui.onKanaboColor('blue')">  青</button>
-          <button class="btn ghost"   onclick="ui.onKanaboColor('other')">その他</button>`;
+          <button class="btn ghost"   onclick="ui.onKanaboColor('none')">? なし</button>`;
         break;
 
       case "hanabi_check":
@@ -1326,6 +1370,72 @@ const ui = (() => {
   function onBossOrderSelect(uid) {
     document.getElementById("trainer-boss-modal").classList.remove("show");
     engine.bossOrderSelect(uid);
+  }
+
+  // ── レコレクション：ベンチポケモン選択 ──
+  function openRecollectionBenchModal(s) {
+    const ctx = s.pendingContext;
+    if (!ctx) return;
+    document.getElementById("recollection-bench-desc").textContent =
+      `進化させるポケモンを選んでください（${ctx.evolvedCount}/2匹 進化済み）`;
+    document.getElementById("recollection-bench-list").innerHTML =
+      (ctx.candidates || []).map(p => {
+        const maxHp = GameEngine.maxHp(p);
+        const curHp = GameEngine.currentHp(p);
+        const ratio = curHp / maxHp;
+        const hpCls = ratio > 0.5 ? "" : ratio > 0.25 ? "mid" : "low";
+        return `
+          <div style="width:80px;cursor:pointer" onclick="ui.onRecollectionSelectBench('${p.uid}')">
+            <div class="poke-slot" style="padding:4px">
+              <img class="poke-img" src="${p.image||''}"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${p.name}">
+              <div class="poke-img-placeholder" style="display:none"> </div>
+              <div class="poke-name" style="font-size:8px">${p.name}</div>
+              <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
+              <div class="hp-text">${curHp}/${maxHp}</div>
+            </div>
+          </div>`;
+      }).join("");
+    // 1匹も進化させていない場合は「これで終了する」を出さない（少なくとも0匹終了はワザ不発動と同義のため許可はする）
+    const finishBtn = document.getElementById("recollection-finish-btn");
+    finishBtn.textContent = ctx.evolvedCount > 0 ? "これで終了する" : "進化させずに終了する";
+    document.getElementById("recollection-bench-modal").classList.add("show");
+  }
+
+  function onRecollectionSelectBench(benchUid) {
+    document.getElementById("recollection-bench-modal").classList.remove("show");
+    engine.recollectionSelectBench(benchUid);
+  }
+
+  function onRecollectionFinish() {
+    document.getElementById("recollection-bench-modal").classList.remove("show");
+    engine.recollectionFinish();
+  }
+
+  // ── レコレクション：進化先選択（山札から） ──
+  function openRecollectionEvolveModal(s) {
+    const ctx = s.pendingContext;
+    if (!ctx) return;
+    document.getElementById("recollection-evolve-title").textContent =
+      `  ${ctx.benchName} の進化先を選ぶ`;
+    document.getElementById("recollection-evolve-desc").textContent =
+      "山札から進化先のカードを選んでください";
+    document.getElementById("recollection-evolve-list").innerHTML =
+      (ctx.evoCandidates || []).map(c => `
+        <div style="width:80px;cursor:pointer" onclick="ui.onRecollectionSelectEvolution('${c.uid}')">
+          <div class="poke-slot" style="padding:4px">
+            <img class="poke-img" src="${c.image||''}"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${c.name}">
+            <div class="poke-img-placeholder" style="display:none"> </div>
+            <div class="poke-name" style="font-size:8px">${c.name}</div>
+          </div>
+        </div>`).join("");
+    document.getElementById("recollection-evolve-modal").classList.add("show");
+  }
+
+  function onRecollectionSelectEvolution(evoCardUid) {
+    document.getElementById("recollection-evolve-modal").classList.remove("show");
+    engine.recollectionSelectEvolution(evoCardUid);
   }
 
 
@@ -1500,6 +1610,12 @@ const ui = (() => {
       isFull ? "ベンチが満員です（最大4体）" : card.name + " をベンチに出しますか？";
     document.querySelector("#bench-confirm-modal .btn.primary").disabled = isFull;
     document.getElementById("bench-confirm-modal").classList.add("show");
+  }
+
+  function showBenchConfirmZoom() {
+    if (!state || !sel.handCard) return;
+    const card = state.player.hand.find(c => c.uid === sel.handCard);
+    if (card) showZoom(card, null);
   }
 
   function onBenchConfirm() {
@@ -1737,6 +1853,14 @@ const ui = (() => {
       showZoom(base, pokemon);
     } catch(e) { console.error(e); }
   }
+  function showActionModalZoom() {
+    if (!state) return;
+    const active = state.player.active;
+    if (!active) return;
+    const base = POKEMON_CARDS.find(c => c.id === active.id) || active;
+    showZoom(base, active);
+  }
+
   function closeZoom() { document.getElementById("card-zoom-modal").classList.remove("show"); }
 
   // ── バトルログ ──
@@ -1842,13 +1966,14 @@ const ui = (() => {
     onBenchConfirm, onCancelBench,
     onAttackFromModal, onRetreatFromAction, closeActionModal,
     onRecollectionAttack,
+    onRecollectionSelectBench, onRecollectionFinish, onRecollectionSelectEvolution,
     onEnergyTargetSelect, onCancelEnergySelect,
     onEvolveTargetSelect, onCancelEvolveSelect,
     onRetreatBenchSelect, onCancelRetreat,
     onSelectHand, onSelectTarget, onSelectBenchTarget,
     onUseAbility, onPRAnswer,
     showLog, closeLog,
-    showZoomByCard, showZoomByLive, closeZoom,
+    showZoomByCard, showZoomByLive, closeZoom, showActionModalZoom, showBenchConfirmZoom,
     openSearchModal, onSearchSelect, closeSearchModal,
     openTrashModal, closeTrashModal, openTrashPreview, closeTrashPreview,
     openStadiumPreview, closeStadiumPreview,
