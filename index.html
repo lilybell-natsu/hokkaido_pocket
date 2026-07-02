@@ -1,6 +1,6 @@
 <!-- ============================================================
      カードバトル index.html
-     Version : 1.11.0
+     Version : 1.11.1
      Updated : 2026-07-02
      ============================================================ -->
 <!DOCTYPE html>
@@ -1190,6 +1190,7 @@ const ui = (() => {
       washi_shrine_select:   `トラッシュから3枚選ぶ（${ctx.selected?.length || 0}/3枚選択中）`,
       nippon_steel:          "トラッシュからエネルギーを選ぶ（バトル場に付けます）",
       nippon_steel_bench_energy_select: "トラッシュからエネルギーを選ぶ（ベンチに付けます）",
+      nkb_inaho_select:      "進化に使う 選抜NKB 神7:イナホ を選ぶ",
     };
     document.getElementById("trainer-select-title").textContent = titles[ctx.type] || "カードを選ぶ";
     document.getElementById("trainer-select-desc").textContent  =
@@ -1199,13 +1200,14 @@ const ui = (() => {
       const isSelected = ctx.selected?.find(s => s.uid === c.uid);
       const border     = isSelected ? "border-color:var(--accent)" : "";
       const isEnergy   = c.cardType === "energy";
+      const sourceLabel = c._source === "hand" ? " 手札" : c._source === "deck" ? " 山札" : "";
       return `
         <div style="width:76px;cursor:pointer" onclick="ui.onTrainerCardSelect('${c.uid}')">
           <div class="poke-slot" style="padding:4px;${border}">
             <img class="poke-img" src="${c.image||''}"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="${c.name}">
             <div class="poke-img-placeholder" style="display:none">${isEnergy?'?':' '}</div>
-            <div class="poke-name" style="font-size:8px">${c.name}</div>
+            <div class="poke-name" style="font-size:8px">${sourceLabel ? sourceLabel + " " : ""}${c.name}</div>
             ${isSelected ? '<div style="font-size:8px;color:var(--accent)">? 選択中</div>' : ''}
           </div>
         </div>`;
@@ -1231,6 +1233,7 @@ const ui = (() => {
       case "nippon_steel_bench_energy_select":
         engine.nipponSteelBenchEnergyAttach(ctx._benchTarget, uid);
         break;
+      case "nkb_inaho_select":      engine.nkbInahoSelect(uid);       break;
     }
   }
 
