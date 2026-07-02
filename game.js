@@ -1,6 +1,6 @@
 // ============================================================
 // カードバトル game.js
-// Version : 1.6.0
+// Version : 1.6.2
 // Updated : 2026-07-02
 // ============================================================
 
@@ -468,7 +468,7 @@ class GameEngine {
     const lockedTypes = [
       "kanabo_color", "yakitori_price", "yakisoba_check",
       "nippon_steel_bonus", "nippon_steel_bench_energy", "nippon_steel_bench_energy_select",
-      "yasuda_peek", "hakucho_stage2_search",
+      "yasuda_peek", "hakucho_stage2_search", "nkb_boss_double_select",
     ];
     if (lockedTypes.includes(ctx.type)) return this._err("効果が既に発動しているためキャンセルできません");
     const s = this.state.player;
@@ -738,8 +738,31 @@ class GameEngine {
     if (s.active && s.active.uid === target.uid) s.active = evolved;
     else { const bi = s.bench.findIndex(c => c.uid === target.uid); if (bi !== -1) s.bench[bi] = evolved; }
     this._log("NKB総選挙：飼育されているクマ が 選抜NKB 神7:イナホ に進化！");
-    const boss = [s.active, ...s.bench].find(p => p && p.name === "飼育された群れのボス");
-    if (boss) { boss._hpDoubled = true; this._log("飼育された群れのボス のHPが2倍になった！"); }
+
+    // 場にいる「飼育された群れのボス」を対象にHP倍化ボーナス（複数いれば選択、1体でも選択ステップを踏む）
+    const bosses = [s.active, ...s.bench].filter(p => p && p.name === "飼育された群れのボス");
+    if (bosses.length === 0) {
+      if (ctx?.card) s.discard.push(ctx.card);
+      this.state.pendingContext = null;
+      this.state.phase = PHASE.PLAYER_TURN;
+      this._notify();
+      return;
+    }
+    this.state.pendingContext = { type: "nkb_boss_double_select", card: ctx?.card, candidates: bosses };
+    this.state.phase = PHASE.WAIT_TRAINER_TARGET;
+    this._log("NKB総選挙：HPを2倍にする 飼育された群れのボス を選んでください。");
+    this._notify();
+  }
+
+  // NKB総選挙：HP倍化対象の群れのボスを選択（何度でも重複して倍化できる）
+  nkbBossDoubleSelect(targetUid) {
+    if (this.state.phase !== PHASE.WAIT_TRAINER_TARGET) return;
+    const s = this.state.player;
+    const ctx = this.state.pendingContext;
+    const target = this._findPokemonByUid("player", targetUid);
+    if (!target || target.name !== "飼育された群れのボス") return this._err("飼育された群れのボスを選んでください");
+    target._hpDoubleCount = (target._hpDoubleCount || 0) + 1;
+    this._log(`飼育された群れのボス のHPが2倍になった！（重複${target._hpDoubleCount}回目）`);
     if (ctx?.card) s.discard.push(ctx.card);
     this.state.pendingContext = null;
     this.state.phase = PHASE.PLAYER_TURN;
@@ -1157,17 +1180,17 @@ class GameEngine {
   _applyDamage(defender, rawDmg, defenderSide) {
     let dmg = rawDmg;
 
-    // 「選抜の7頭」：場の全エネルギー合計×20軽減
+    // 「選抜の7頭」：場の全エネルギー合計×20軽減（イナホの体数分だけ重複して適用）
     const defSide = this.state[defenderSide];
-    const inahoOnField = [defSide.active, ...defSide.bench]
-      .some(p => p && p.ability && p.ability.effectKey === "sentaku_no_7");
-    if (inahoOnField) {
+    const inahoCount = [defSide.active, ...defSide.bench]
+      .filter(p => p && p.ability && p.ability.effectKey === "sentaku_no_7").length;
+    if (inahoCount > 0) {
       const totalEnergy = [defSide.active, ...defSide.bench]
         .filter(Boolean)
         .reduce((sum, p) => sum + p.attachedEnergy.length, 0);
-      const reduction = totalEnergy * 20;
+      const reduction = totalEnergy * 20 * inahoCount;
       dmg = Math.max(0, dmg - reduction);
-      if (reduction > 0) this._log(`選抜の7頭：エネルギー ${totalEnergy} 枚 → ${reduction} ダメージ軽減！`);
+      if (reduction > 0) this._log(`選抜の7頭：エネルギー ${totalEnergy} 枚 ×20 ×イナホ${inahoCount}体 → ${reduction} ダメージ軽減！`);
     }
 
     // 「王の風格」：相手がたねの場合ダメージ0（HP条件付き）
@@ -1476,6 +1499,7 @@ class GameEngine {
 
   static maxHp(pokemon) {
     const base = POKEMON_CARDS.find(c => c.id === pokemon.id)?.hp || pokemon.hp;
-    return pokemon._hpDoubled ? base * 2 : base;
+    const count = pokemon._hpDoubleCount || 0;
+    return count > 0 ? base * Math.pow(2, count) : base;
   }
 }
