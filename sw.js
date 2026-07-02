@@ -4,7 +4,7 @@
 // Updated : 2025-06-30
 // ============================================================
 
-const CACHE_NAME = "hduel-v1.4.4";
+const CACHE_NAME = "hduel-v1.11.0";
 
 const STATIC_FILES = [
   "./index.html",
