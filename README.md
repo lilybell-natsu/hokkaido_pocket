@@ -40,9 +40,9 @@ sw.js は v1.4.4 以降「ネットワーク優先＋自動更新検知」方式
 
 ```
 /
-├── index.html       v1.9.0  メインUI
-├── game.js          v1.4.0  ゲームロジック
-├── card_data.js     v1.1.0  カード定義データ
+├── index.html       v1.11.0  メインUI
+├── game.js          v1.5.1   ゲームロジック
+├── card_data.js     v1.1.1   カード定義データ
 ├── manifest.json            PWA マニフェスト
 ├── sw.js                    Service Worker
 ├── icon-192.png             アプリアイコン 192px
