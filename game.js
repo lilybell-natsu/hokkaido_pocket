@@ -1,7 +1,7 @@
 // ============================================================
 // カードバトル game.js
-// Version : 1.4.5
-// Updated : 2025-06-30
+// Version : 1.5.1
+// Updated : 2026-07-01
 // ============================================================
 
 // ============================================================
@@ -25,6 +25,9 @@ const PHASE = {
   WAIT_TRAINER_SELECT:  "wait_trainer_select",  // 汎用選択（トラッシュ・手札・山札）
   WAIT_TRAINER_ANSWER:  "wait_trainer_answer",  // 申告待ち（価格・花火等）
   WAIT_TRAINER_BENCH_SELECT: "wait_trainer_bench_select", // ベンチ選択系
+  // レコレクション（ベンチ進化）専用フェーズ
+  WAIT_RECOLLECTION_BENCH:  "wait_recollection_bench",  // 進化させるベンチポケモン選択
+  WAIT_RECOLLECTION_EVOLVE: "wait_recollection_evolve", // 山札から進化先を選択
 };
 
 class GameState {
@@ -529,12 +532,14 @@ class GameEngine {
     const s = this.state.player;
     switch (card.effectKey) {
       case "support_kishimoto": {
+        // 使用した岸本将は先にトラッシュへ（手札からは既に除去済み）
+        s.discard.push(card);
+        // 残った手札を山札に戻してシャッフル→3ドロー
         s.deck.push(...s.hand); s.hand = []; s.deck = this._shuffle(s.deck);
         const cs = this.state.cpu;
         cs.deck.push(...cs.hand); cs.hand = []; cs.deck = this._shuffle(cs.deck);
         for (let i = 0; i < 3 && s.deck.length; i++) s.hand.push(s.deck.shift());
         for (let i = 0; i < 3 && cs.deck.length; i++) cs.hand.push(cs.deck.shift());
-        s.discard.push(card);
         this._log("岸本将：お互い手札を戻し、それぞれ3枚ドロー！");
         this._notify(); break;
       }
@@ -631,7 +636,11 @@ class GameEngine {
         this._notify(); break;
       }
       case "goods_washi_shrine": {
-        if (s.discard.length < 10) { this._log(`鷲別神社：トラッシュが${s.discard.length}枚です（10枚必要）。`); this._notify(); break; }
+        if (s.discard.length < 10) {
+          s.hand.push(card);
+          this._log(`鷲別神社：トラッシュが${s.discard.length}枚のため使用できません（10枚必要）。`);
+          this._notify(); break;
+        }
         this.state.pendingContext = { type: "washi_shrine_select", card, candidates: [...s.discard], selected: [] };
         this.state.phase = PHASE.WAIT_TRAINER_SELECT;
         this._notify(); break;
@@ -896,14 +905,19 @@ class GameEngine {
     const target = this._findPokemonByUid("player", ctx.targetUid);
     let bonus = 0;
     if (color === "red") bonus = 20;
-    if (color === "blue") bonus = 30;
+    else if (color === "blue") bonus = 30;
+    // color === "none"（赤でも青でもない）の場合は bonus = 0（基本の+20のみ適用）
     if (target) target.kanaboColorBonus = bonus;
-    this._log(`金棒装備完了。着衣色：${color}（追加ダメージ+${bonus}）`);
+    const colorLabel = color === "red" ? "赤" : color === "blue" ? "青" : "なし";
+    this._log(`金棒装備完了。着衣色：${colorLabel}（追加ダメージ+${bonus}）`);
     this.state.pendingContext = null; this.state.phase = PHASE.PLAYER_TURN; this._notify();
   }
 
   // ----------------------------------------------------------
   // レコレクション追加ワザ
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  // レコレクション追加ワザ（ベンチ進化：1匹ずつプレイヤーが選択）
   // ----------------------------------------------------------
   useRecollection(attackerUid) {
     if (this.state.phase !== PHASE.PLAYER_TURN) return this._err("あなたのターンではありません");
@@ -912,23 +926,99 @@ class GameEngine {
     if (!attacker || !attacker.attachedTool || attacker.attachedTool.effectKey !== "tool_recollection")
       return this._err("ワザマシン レコレクションを持っていません");
     const s = this.state.player;
-    const bench = s.bench.filter(Boolean);
-    if (bench.length === 0) { this._log("ベンチにポケモンがいません。"); return; }
-    let evolved = 0;
-    bench.slice(0, 2).forEach(p => {
-      const evoCard = s.deck.find(c => c.evolvesFrom === p.name);
-      if (!evoCard) return;
-      const deckIdx = s.deck.findIndex(c => c.uid === evoCard.uid);
-      s.deck.splice(deckIdx, 1);
-      const evolvedPoke = { ...evoCard, uid: p.uid, attachedEnergy: p.attachedEnergy, damage: p.damage, abilityUsedThisTurn: false, attachedTool: p.attachedTool || null };
-      const bi = s.bench.findIndex(c => c.uid === p.uid);
-      if (bi !== -1) s.bench[bi] = evolvedPoke;
-      this._log(`レコレクション：${p.name} が ${evoCard.name} に進化！`);
-      evolved++;
-    });
+    // 進化先が山札に存在するベンチポケモンのみ候補にする
+    const bench = s.bench.filter(Boolean).filter(p =>
+      s.deck.some(c => c.evolvesFrom === p.name)
+    );
+    if (bench.length === 0) {
+      this._log("レコレクション：進化できるベンチポケモンがいません（山札に進化先なし）。");
+      this.state.turnFlags.attacked = true;
+      this._afterAttack();
+      return;
+    }
+    this.state.pendingContext = {
+      type: "recollection_bench_select",
+      attackerUid,
+      candidates: bench,
+      evolvedCount: 0,
+    };
+    this.state.phase = PHASE.WAIT_RECOLLECTION_BENCH;
+    this._log("レコレクション：進化させるベンチポケモンを選んでください（最大2匹）。");
+    this._notify();
+  }
+
+  // ベンチポケモンを1匹選択 → その進化先候補（山札）を選ぶフェーズへ
+  recollectionSelectBench(benchUid) {
+    if (this.state.phase !== PHASE.WAIT_RECOLLECTION_BENCH) return;
+    const ctx = this.state.pendingContext;
+    const s = this.state.player;
+    const target = ctx.candidates.find(p => p.uid === benchUid);
+    if (!target) return this._err("そのポケモンは選択できません");
+    const evoCandidates = s.deck.filter(c => c.evolvesFrom === target.name);
+    if (evoCandidates.length === 0) return this._err("山札に進化先がありません");
+    this.state.pendingContext = {
+      type: "recollection_evolve_select",
+      attackerUid: ctx.attackerUid,
+      benchUid: target.uid,
+      benchName: target.name,
+      evoCandidates,
+      evolvedCount: ctx.evolvedCount,
+      remainingBenchCandidates: ctx.candidates.filter(p => p.uid !== benchUid),
+    };
+    this.state.phase = PHASE.WAIT_RECOLLECTION_EVOLVE;
+    this._log(`${target.name}：進化先を山札から選んでください。`);
+    this._notify();
+  }
+
+  // 進化先カードを選択して進化実行
+  recollectionSelectEvolution(evoCardUid) {
+    if (this.state.phase !== PHASE.WAIT_RECOLLECTION_EVOLVE) return;
+    const ctx = this.state.pendingContext;
+    const s = this.state.player;
+    const evoCard = ctx.evoCandidates.find(c => c.uid === evoCardUid);
+    if (!evoCard) return this._err("そのカードは選択できません");
+    const target = [s.active, ...s.bench].find(p => p && p.uid === ctx.benchUid);
+    if (!target) return this._err("対象のポケモンが見つかりません");
+
+    const deckIdx = s.deck.findIndex(c => c.uid === evoCard.uid);
+    if (deckIdx !== -1) s.deck.splice(deckIdx, 1);
+    const evolvedPoke = { ...evoCard, uid: target.uid, attachedEnergy: target.attachedEnergy, damage: target.damage, abilityUsedThisTurn: false, attachedTool: target.attachedTool || null };
+    const bi = s.bench.findIndex(c => c.uid === target.uid);
+    if (bi !== -1) s.bench[bi] = evolvedPoke;
     s.deck = this._shuffle(s.deck);
-    if (evolved === 0) this._log("レコレクション：山札に進化先がありませんでした。");
+    this._log(`レコレクション：${target.name} が ${evoCard.name} に進化！`);
+
+    const evolvedCount = ctx.evolvedCount + 1;
+    const remaining = ctx.remainingBenchCandidates.filter(p =>
+      s.deck.some(c => c.evolvesFrom === p.name)
+    );
+
+    if (evolvedCount >= 2 || remaining.length === 0) {
+      this._finishRecollection();
+      return;
+    }
+
+    // まだ1匹目のみ進化済み → もう1匹選ぶか終了するかの選択へ
+    this.state.pendingContext = {
+      type: "recollection_bench_select",
+      attackerUid: ctx.attackerUid,
+      candidates: remaining,
+      evolvedCount,
+    };
+    this.state.phase = PHASE.WAIT_RECOLLECTION_BENCH;
+    this._notify();
+  }
+
+  // 「これ以上進化させない」を選んで終了
+  recollectionFinish() {
+    if (this.state.phase !== PHASE.WAIT_RECOLLECTION_BENCH) return;
+    this._finishRecollection();
+  }
+
+  _finishRecollection() {
+    this.state.pendingContext = null;
     this.state.turnFlags.attacked = true;
+    this.state.phase = PHASE.PLAYER_TURN;
     this._afterAttack();
   }
 
