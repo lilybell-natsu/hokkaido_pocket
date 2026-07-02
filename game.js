@@ -1,7 +1,7 @@
 // ============================================================
 // カードバトル game.js
-// Version : 1.5.1
-// Updated : 2026-07-01
+// Version : 1.6.0
+// Updated : 2026-07-02
 // ============================================================
 
 // ============================================================
@@ -512,11 +512,19 @@ class GameEngine {
       this._useStadium(card); return;
     }
     if (card.trainerType === "support") {
+      if (card.effectKey === "support_boss_order") {
+        const cpuBench = this.state.cpu.bench.filter(Boolean);
+        if (cpuBench.length === 0) return this._err("相手にベンチポケモンがいないため使用できません");
+      }
       s.hand.splice(idx, 1);
       this.state.turnFlags.supportUsed = true;
       this._useSupport(card); return;
     }
     if (card.trainerType === "goods") {
+      if (card.effectKey === "goods_nkb_sousenkyo") {
+        const hasKuma = [s.active, ...s.bench].some(p => p && p.name === "飼育されているクマ");
+        if (!hasKuma) return this._err("場に飼育されているクマがいないため使用できません");
+      }
       s.hand.splice(idx, 1);
       this._useGoods(card); return;
     }
@@ -572,7 +580,6 @@ class GameEngine {
       }
       case "support_boss_order": {
         const cpuBench = this.state.cpu.bench.filter(Boolean);
-        if (cpuBench.length === 0) { this._log("相手にベンチポケモンがいません。"); this._notify(); break; }
         this.state.pendingContext = { type: "boss_order", card, candidates: cpuBench };
         this.state.phase = PHASE.WAIT_TRAINER_BENCH_SELECT;
         this._notify(); break;
@@ -617,7 +624,11 @@ class GameEngine {
       }
       case "goods_nippon_steel": {
         const myEnergies = s.discard.filter(c => c.cardType === "energy");
-        if (myEnergies.length === 0) { this._log("トラッシュにエネルギーがありません。"); this._notify(); break; }
+        if (myEnergies.length === 0) {
+          s.discard.push(card);
+          this._log("日本製鉄：トラッシュにエネルギーがありません。");
+          this._notify(); break;
+        }
         this.state.pendingContext = { type: "nippon_steel", card, candidates: myEnergies };
         this.state.phase = PHASE.WAIT_TRAINER_SELECT;
         this._notify(); break;
@@ -678,9 +689,52 @@ class GameEngine {
     const ctx = this.state.pendingContext;
     const target = this._findPokemonByUid("player", targetUid);
     if (!target || target.name !== "飼育されているクマ") return this._err("飼育されているクマを選んでください");
-    const inahoCard = POKEMON_CARDS.find(c => c.id === "p005");
-    if (!inahoCard) return this._err("イナホのカードデータが見つかりません");
-    const evolved = { ...inahoCard, uid: target.uid, attachedEnergy: target.attachedEnergy, damage: target.damage, abilityUsedThisTurn: false, attachedTool: target.attachedTool || null };
+
+    // 手札・山札にある「選抜NKB 神7:イナホ」の実カードを候補として集める
+    const handInaho = s.hand.filter(c => c.id === "p005");
+    const deckInaho = s.deck.filter(c => c.id === "p005");
+    const candidates = [
+      ...handInaho.map(c => ({ ...c, _source: "hand" })),
+      ...deckInaho.map(c => ({ ...c, _source: "deck" })),
+    ];
+
+    if (candidates.length === 0) {
+      // 進化先が存在しない：進化せず、使用したグッズのみトラッシュ
+      if (ctx?.card) s.discard.push(ctx.card);
+      this._log("NKB総選挙：手札にも山札にも選抜NKB 神7:イナホがいないため進化できなかった。");
+      this.state.pendingContext = null;
+      this.state.phase = PHASE.PLAYER_TURN;
+      this._notify();
+      return;
+    }
+
+    this.state.pendingContext = { type: "nkb_inaho_select", card: ctx?.card, targetUid, candidates };
+    this.state.phase = PHASE.WAIT_TRAINER_SELECT;
+    this._log("NKB総選挙：進化に使う 選抜NKB 神7:イナホ を選んでください。");
+    this._notify();
+  }
+
+  nkbInahoSelect(cardUid) {
+    if (this.state.phase !== PHASE.WAIT_TRAINER_SELECT) return;
+    const s = this.state.player;
+    const ctx = this.state.pendingContext;
+    const chosen = ctx?.candidates?.find(c => c.uid === cardUid);
+    if (!chosen) return this._err("そのカードは選択できません");
+    const target = this._findPokemonByUid("player", ctx.targetUid);
+    if (!target || target.name !== "飼育されているクマ") return this._err("進化元のクマが見つかりません");
+
+    // 選んだ実カードを実際に手札 or 山札から取り除いて消費する
+    if (chosen._source === "hand") {
+      const hi = s.hand.findIndex(c => c.uid === cardUid);
+      if (hi !== -1) s.hand.splice(hi, 1);
+    } else {
+      const di = s.deck.findIndex(c => c.uid === cardUid);
+      if (di !== -1) s.deck.splice(di, 1);
+      s.deck = this._shuffle(s.deck);
+    }
+
+    const { _source, ...chosenClean } = chosen;
+    const evolved = { ...chosenClean, uid: target.uid, attachedEnergy: target.attachedEnergy, damage: target.damage, abilityUsedThisTurn: false, attachedTool: target.attachedTool || null };
     if (s.active && s.active.uid === target.uid) s.active = evolved;
     else { const bi = s.bench.findIndex(c => c.uid === target.uid); if (bi !== -1) s.bench[bi] = evolved; }
     this._log("NKB総選挙：飼育されているクマ が 選抜NKB 神7:イナホ に進化！");
