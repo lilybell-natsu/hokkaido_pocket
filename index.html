@@ -1,7 +1,7 @@
 <!-- ============================================================
      カードバトル index.html
-     Version : 1.10.1
-     Updated : 2025-06-30
+     Version : 1.11.0
+     Updated : 2026-07-02
      ============================================================ -->
 <!DOCTYPE html>
 <html lang="ja">
@@ -102,6 +102,8 @@
   .poke-slot.selected     { border-color: var(--accent); box-shadow: 0 0 0 2px #e8a02044; }
   .poke-slot.cpu-zone     { cursor: default; }
   .poke-slot.bench-target { border-color: var(--red); box-shadow: 0 0 0 2px #e0505055; }
+  /* 特性を持つポケモン：紫縁取り（未使用時のみ。使用済みone_per_turnは通常色に戻る） */
+  .poke-slot.has-ability  { border-color: var(--purple); box-shadow: 0 0 0 2px #8b5cf644; }
 
   /* バトル場カード：スマホ幅に合わせた固定幅 */
   .active-card { width: 100px; }
@@ -336,14 +338,26 @@
     display: flex; flex-direction: column; align-items: center; gap: 10px;
     width: 100%; max-width: 320px; max-height: 90vh; overflow-y: auto;
   }
+  #card-zoom-img-wrap { position: relative; width: 100%; max-width: 280px; }
   #card-zoom-img {
-    width: 100%; max-width: 280px; aspect-ratio: 2/3; object-fit: cover;
+    width: 100%; aspect-ratio: 2/3; object-fit: cover;
     border-radius: 14px; box-shadow: 0 6px 32px #0009; background: var(--card-bg);
+    display: block;
   }
   #card-zoom-placeholder {
-    display: none; width: 100%; max-width: 280px; aspect-ratio: 2/3;
+    display: none; width: 100%; aspect-ratio: 2/3;
     background: var(--card-bg); border-radius: 14px;
     align-items: center; justify-content: center; font-size: 72px;
+  }
+  /* 画像上にオーバーレイ表示するHP・エネルギー */
+  #card-zoom-overlay-hp {
+    position: absolute; top: 8px; left: 8px;
+    background: #000a; color: #fff; font-size: 13px; font-weight: 700;
+    padding: 3px 8px; border-radius: 6px; display: none;
+  }
+  #card-zoom-overlay-energy {
+    position: absolute; top: 8px; right: 8px;
+    display: flex; gap: 3px; flex-wrap: wrap; max-width: 60%; justify-content: flex-end;
   }
   #card-zoom-info {
     background: var(--surface); border: 1px solid var(--border);
@@ -364,6 +378,8 @@
   }
   .zoom-ability-name { font-size: 12px; font-weight: 600; color: var(--purple); }
   .zoom-ability-desc { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+  #card-zoom-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  #card-zoom-actions .btn { width: 100%; text-align: center; }
   #card-zoom-close {
     width: 100%; padding: 12px; background: var(--card-bg);
     border: 1px solid var(--border); border-radius: 10px;
@@ -614,14 +630,19 @@
 <!-- カード拡大モーダル -->
 <div id="card-zoom-modal" onclick="ui.closeZoom()">
   <div id="card-zoom-box" onclick="event.stopPropagation()">
-    <img id="card-zoom-img" src="" alt="">
-    <div id="card-zoom-placeholder"> </div>
+    <div id="card-zoom-img-wrap">
+      <img id="card-zoom-img" src="" alt="">
+      <div id="card-zoom-placeholder"> </div>
+      <div id="card-zoom-overlay-hp"></div>
+      <div id="card-zoom-overlay-energy"></div>
+    </div>
     <div id="card-zoom-info">
       <div id="card-zoom-name"></div>
       <div id="card-zoom-meta"></div>
       <div id="card-zoom-hp"></div>
       <div id="card-zoom-ability" style="display:none"></div>
       <div id="card-zoom-moves"></div>
+      <div id="card-zoom-actions"></div>
     </div>
     <button id="card-zoom-close" onclick="ui.closeZoom()">閉じる</button>
   </div>
@@ -863,15 +884,15 @@ const ui = (() => {
     const ratio = curHp / maxHp;
     const hpCls = ratio > 0.5 ? "" : ratio > 0.25 ? "mid" : "low";
     const isBT  = state && state.phase === PHASE.WAIT_BENCH_TARGET && !isPlayer;
+    const hasAbility = !!pokemon.ability && !pokemon.abilityUsedThisTurn;
     const selCls   = isPlayer && sel.target === pokemon.uid ? " selected" : "";
     const extraCls = isBT ? " bench-target" : (!isPlayer ? " cpu-zone" : "");
-    const clickFn  = isPlayer ? `ui.onSelectTarget('${pokemon.uid}')`
-                   : isBT ? `ui.onSelectBenchTarget('${pokemon.uid}')` : ``;
-    const pdata = encodeData(pokemon);
+    const abilityCls = hasAbility ? " has-ability" : "";
+    const clickFn  = isBT ? `ui.onSelectBenchTarget('${pokemon.uid}')`
+                   : `ui.onPokeTap('${pokemon.uid}', ${isPlayer})`;
     wrap.innerHTML = `
-      <div class="poke-slot active-card${selCls}${extraCls}" onclick="${clickFn}">
+      <div class="poke-slot active-card${selCls}${extraCls}${abilityCls}" onclick="${clickFn}">
         ${pokeImgHtml(pokemon)}
-        <button class="zoom-btn" onclick="event.stopPropagation();ui.showZoomByLive('${pdata}')"> </button>
         <div class="poke-name">${pokemon.name}${pokemon.isEX?'<span class="poke-ex-badge">eX</span>':''}</div>
         <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
         <div class="hp-text">${curHp}/${maxHp}</div>
@@ -889,16 +910,16 @@ const ui = (() => {
       const curHp = GameEngine.currentHp(p);
       const ratio = curHp / maxHp;
       const hpCls = ratio > 0.5 ? "" : ratio > 0.25 ? "mid" : "low";
+      const hasAbility = !!p.ability && !p.abilityUsedThisTurn;
       const selCls   = isPlayer && sel.target === p.uid ? " selected" : "";
       const extraCls = isBT ? " bench-target" : (!isPlayer ? " cpu-zone" : "");
-      const clickFn  = isPlayer ? `ui.onSelectTarget('${p.uid}')`
-                     : isBT ? `ui.onSelectBenchTarget('${p.uid}')` : ``;
-      const pdata = encodeData(p);
+      const abilityCls = hasAbility ? " has-ability" : "";
+      const clickFn  = isBT ? `ui.onSelectBenchTarget('${p.uid}')`
+                     : `ui.onPokeTap('${p.uid}', ${isPlayer})`;
       return `
         <div class="bench-slot">
-          <div class="poke-slot${selCls}${extraCls}" onclick="${clickFn}">
+          <div class="poke-slot${selCls}${extraCls}${abilityCls}" onclick="${clickFn}">
             ${pokeImgHtml(p)}
-            <button class="zoom-btn" onclick="event.stopPropagation();ui.showZoomByLive('${pdata}')"> </button>
             <div class="poke-name">${p.name}${p.isEX?'<span class="poke-ex-badge">eX</span>':''}</div>
             <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
             ${energyHtml(p.attachedEnergy)}
@@ -1507,18 +1528,20 @@ const ui = (() => {
     if (state) renderActionBar(state);
   }
 
-  function onSelectTarget(uid) {
-    if (sel.mode === "energy" && sel.handCard) {
+  // 場のポケモンをタップ：エネルギー付与/進化選択中はそちらを優先、それ以外はまず拡大表示
+  function onPokeTap(uid, isPlayer) {
+    if (isPlayer && sel.mode === "energy" && sel.handCard) {
       engine.attachEnergy(sel.handCard, uid); clearSel(); return;
     }
-    if (sel.mode === "evolve" && sel.handCard) {
+    if (isPlayer && sel.mode === "evolve" && sel.handCard) {
       engine.evolve(sel.handCard, uid); clearSel(); return;
     }
     if (!state) return;
-    const isActive = state.player.active && state.player.active.uid === uid;
-    if (isActive && state.phase === PHASE.PLAYER_TURN) {
-      openActionModal();
-    }
+    const side = isPlayer ? state.player : state.cpu;
+    const pokemon = [side.active, ...side.bench].find(p => p && p.uid === uid);
+    if (!pokemon) return;
+    const isActiveSlot = side.active && side.active.uid === uid;
+    showFieldZoom(pokemon, isPlayer, isActiveSlot);
   }
 
   function onSelectBenchTarget(uid) {
@@ -1799,7 +1822,7 @@ const ui = (() => {
   }
 
   // ── カード拡大 ──
-  function showZoom(card, liveData) {
+  function showZoom(card, liveData, actionsConfig) {
     const img = document.getElementById("card-zoom-img");
     const ph  = document.getElementById("card-zoom-placeholder");
     img.src = card.image || "";
@@ -1814,14 +1837,27 @@ const ui = (() => {
       `タイプ: ${card.type||"?"}　にげる: ${card.retreat??0}`;
 
     const hpEl = document.getElementById("card-zoom-hp");
+    const overlayHp = document.getElementById("card-zoom-overlay-hp");
+    const overlayEnergy = document.getElementById("card-zoom-overlay-energy");
     if (liveData) {
       const cur = GameEngine.currentHp(liveData);
       const max = GameEngine.maxHp(liveData);
       hpEl.textContent = `HP: ${cur} / ${max}`;
       hpEl.style.color = cur/max > 0.5 ? "var(--green)" : cur/max > 0.25 ? "var(--accent)" : "var(--red)";
+      // 画像オーバーレイ：HP
+      overlayHp.textContent = `${cur} / ${max}`;
+      overlayHp.style.display = "block";
+      overlayHp.style.color = cur/max > 0.5 ? "var(--green)" : cur/max > 0.25 ? "var(--accent)" : "var(--red)";
+      // 画像オーバーレイ：エネルギー
+      overlayEnergy.innerHTML = (liveData.attachedEnergy||[]).map(e => {
+        const ts = TYPE_STYLE[e.type] || TYPE_STYLE["無"];
+        return `<div class="energy-pip" title="${e.type}" style="background:${ts.bg};color:${ts.color}">${ts.icon}</div>`;
+      }).join("");
     } else {
       hpEl.textContent = `HP: ${card.hp}`;
       hpEl.style.color = "var(--green)";
+      overlayHp.style.display = "none";
+      overlayEnergy.innerHTML = "";
     }
 
     const abilityEl = document.getElementById("card-zoom-ability");
@@ -1840,17 +1876,51 @@ const ui = (() => {
         <div class="zoom-move-meta">${costStr} ? ${dmgStr}</div>${descHtml}</div>`;
     }).join("");
 
+    // アクションボタン（自分の場のポケモンをタップした場合のみ）
+    const actionsEl = document.getElementById("card-zoom-actions");
+    if (actionsConfig) {
+      const { pokemon, isPlayer, isActiveSlot } = actionsConfig;
+      const isMyTurn = state && state.phase === PHASE.PLAYER_TURN;
+      const btns = [];
+      if (isPlayer && isActiveSlot && isMyTurn && !state.turnFlags.attacked) {
+        btns.push(`<button class="btn primary" onclick="ui.onZoomUseMove()">?? ワザを使う</button>`);
+      }
+      if (isPlayer && pokemon.ability && pokemon.ability.trigger === "once_per_turn"
+          && !pokemon.abilityUsedThisTurn && isMyTurn) {
+        btns.push(`<button class="btn blue" onclick="ui.onZoomUseAbility('${pokemon.uid}')">? 特性を使う</button>`);
+      }
+      actionsEl.innerHTML = btns.join("");
+    } else {
+      actionsEl.innerHTML = "";
+    }
+
     document.getElementById("card-zoom-modal").classList.add("show");
   }
 
+  // 場のポケモンタップ時の拡大表示（HP・エネルギーのオーバーレイ＋アクションボタン付き）
+  function showFieldZoom(pokemon, isPlayer, isActiveSlot) {
+    const base = POKEMON_CARDS.find(c => c.id === pokemon.id) || pokemon;
+    showZoom(base, pokemon, { pokemon, isPlayer, isActiveSlot });
+  }
+
+  function onZoomUseMove() {
+    closeZoom();
+    openActionModal();
+  }
+
+  function onZoomUseAbility(uid) {
+    closeZoom();
+    engine.useAbility(uid);
+  }
+
   function showZoomByCard(encoded) {
-    try { showZoom(decodeData(encoded), null); } catch(e) { console.error(e); }
+    try { showZoom(decodeData(encoded), null, null); } catch(e) { console.error(e); }
   }
   function showZoomByLive(encoded) {
     try {
       const pokemon = decodeData(encoded);
       const base = POKEMON_CARDS.find(c => c.id === pokemon.id) || pokemon;
-      showZoom(base, pokemon);
+      showZoom(base, pokemon, null);
     } catch(e) { console.error(e); }
   }
   function showActionModalZoom() {
@@ -1858,7 +1928,7 @@ const ui = (() => {
     const active = state.player.active;
     if (!active) return;
     const base = POKEMON_CARDS.find(c => c.id === active.id) || active;
-    showZoom(base, active);
+    showZoom(base, active, null);
   }
 
   function closeZoom() { document.getElementById("card-zoom-modal").classList.remove("show"); }
@@ -1970,10 +2040,11 @@ const ui = (() => {
     onEnergyTargetSelect, onCancelEnergySelect,
     onEvolveTargetSelect, onCancelEvolveSelect,
     onRetreatBenchSelect, onCancelRetreat,
-    onSelectHand, onSelectTarget, onSelectBenchTarget,
+    onSelectHand, onPokeTap, onSelectBenchTarget,
     onUseAbility, onPRAnswer,
     showLog, closeLog,
     showZoomByCard, showZoomByLive, closeZoom, showActionModalZoom, showBenchConfirmZoom,
+    onZoomUseMove, onZoomUseAbility,
     openSearchModal, onSearchSelect, closeSearchModal,
     openTrashModal, closeTrashModal, openTrashPreview, closeTrashPreview,
     openStadiumPreview, closeStadiumPreview,
