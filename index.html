@@ -1,6 +1,6 @@
 <!-- ============================================================
      カードバトル index.html
-     Version : 1.12.2
+     Version : 1.13.0
      Updated : 2026-07-02
      ============================================================ -->
 <!DOCTYPE html>
@@ -18,17 +18,17 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root {
-    --bg:      #0e1a2b;
-    --surface: #162032;
-    --card-bg: #1c2d42;
-    --border:  #2a3f5c;
+    --bg:      #f5f7fa;
+    --surface: #ffffff;
+    --card-bg: #ffffff;
+    --border:  #d8dee6;
     --accent:  #e8a020;
     --accent2: #3a9bdc;
     --red:     #e05050;
     --green:   #4caf7d;
     --purple:  #9b7fd4;
-    --text:    #e8eaf0;
-    --muted:   #7a9ab8;
+    --text:    #1c2430;
+    --muted:   #6b7688;
     --font:    'Segoe UI', system-ui, sans-serif;
     /* スマホ縦画面の固定エリア高さ */
     --header-h:  48px;
@@ -95,7 +95,7 @@
   /* ── ポケモンスロット ── */
   .poke-slot {
     background: var(--card-bg); border: 1px solid var(--border);
-    border-radius: 8px; padding: 6px;
+    border-radius: 8px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.08);
     cursor: pointer; transition: border-color .12s; position: relative;
     touch-action: manipulation;
   }
@@ -105,22 +105,22 @@
   /* 特性を持つポケモン：紫縁取り（未使用時のみ。使用済みone_per_turnは通常色に戻る） */
   .poke-slot.has-ability  { border-color: var(--purple); box-shadow: 0 0 0 2px #8b5cf644; }
 
-  /* バトル場カード：スマホ幅に合わせた固定幅 */
-  .active-card { width: 100px; }
-  /* ベンチカード */
-  .bench-slot { width: 100%; }
+  /* バトル場カード：ベンチより大きい固定幅 */
+  .active-card { width: 108px; }
+  /* ベンチカード：2×2でスクロール不要な固定幅 */
+  .bench-slot { width: 76px; }
 
   .poke-img {
     width: 100%; aspect-ratio: 2/3; object-fit: cover;
-    border-radius: 4px; background: var(--surface); display: block;
+    border-radius: 4px; background: #eef1f5; display: block; margin-top: 4px;
   }
   .poke-img-placeholder {
-    width: 100%; aspect-ratio: 2/3; background: var(--surface);
+    width: 100%; aspect-ratio: 2/3; background: #eef1f5;
     border-radius: 4px; display: flex; align-items: center;
-    justify-content: center; font-size: 24px; color: var(--muted);
+    justify-content: center; font-size: 24px; color: var(--muted); margin-top: 4px;
   }
   .poke-name {
-    font-size: 9px; font-weight: 600; margin-top: 4px;
+    font-size: 9px; font-weight: 600;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     line-height: 1.3;
   }
@@ -129,7 +129,7 @@
     font-size: 7px; font-weight: 700; padding: 1px 3px; border-radius: 2px; margin-left: 2px;
   }
 
-  .hp-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 3px; overflow: hidden; }
+  .hp-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 2px; overflow: hidden; }
   .hp-fill { height: 100%; border-radius: 2px; background: var(--green); }
   .hp-fill.mid { background: var(--accent); }
   .hp-fill.low { background: var(--red); }
@@ -141,14 +141,7 @@
     font-size: 7px; display: flex; align-items: center; justify-content: center; font-weight: 700;
   }
 
-  .ability-badge {
-    margin-top: 3px; background: var(--purple); color: #fff;
-    font-size: 8px; padding: 1px 4px; border-radius: 3px;
-    display: inline-block; cursor: default; line-height: 1.5;
-  }
-  .ability-badge.used { background: var(--border); color: var(--muted); }
-
-  .bench-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+  .bench-row { display: grid; grid-template-columns: repeat(2, 76px); gap: 4px; }
 
   /* ── サイドカード ── */
   .prize-row { display: flex; gap: 3px; flex-wrap: wrap; }
@@ -436,7 +429,6 @@
 <div id="field">
   <!-- CPU側 -->
   <div>
-    <div class="zone-label">CPU バトル場 &amp; ベンチ</div>
     <div class="field-area">
       <div class="field-active-wrap">
         <div class="field-sublabel">バトル場</div>
@@ -467,7 +459,6 @@
 
   <!-- プレイヤー側 -->
   <div>
-    <div class="zone-label">あなた バトル場 &amp; ベンチ &amp; 手札</div>
     <!-- バトル場＋ベンチ＋手札を横並び -->
     <div style="display:flex;flex-direction:row;gap:6px;align-items:flex-start">
       <!-- バトル場 -->
@@ -478,7 +469,7 @@
       <!-- ベンチ（縦並び） -->
       <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
         <div class="field-sublabel">ベンチ</div>
-        <div id="player-bench" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px"></div>
+        <div id="player-bench" style="display:grid;grid-template-columns:repeat(2,76px);gap:4px"></div>
       </div>
     </div>
   </div>
@@ -899,12 +890,11 @@ const ui = (() => {
                    : `ui.onPokeTap('${pokemon.uid}', ${isPlayer})`;
     wrap.innerHTML = `
       <div class="poke-slot active-card${selCls}${extraCls}${abilityCls}" onclick="${clickFn}">
-        ${pokeImgHtml(pokemon)}
         <div class="poke-name">${pokemon.name}${pokemon.isEX?'<span class="poke-ex-badge">eX</span>':''}</div>
         <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
         <div class="hp-text">${curHp}/${maxHp}</div>
+        ${pokeImgHtml(pokemon)}
         ${energyHtml(pokemon.attachedEnergy)}
-        ${abilityBadgeHtml(pokemon, isPlayer)}
       </div>`;
   }
 
@@ -926,11 +916,11 @@ const ui = (() => {
       return `
         <div class="bench-slot">
           <div class="poke-slot${selCls}${extraCls}${abilityCls}" onclick="${clickFn}">
-            ${pokeImgHtml(p)}
             <div class="poke-name">${p.name}${p.isEX?'<span class="poke-ex-badge">eX</span>':''}</div>
             <div class="hp-bar"><div class="hp-fill ${hpCls}" style="width:${ratio*100}%"></div></div>
+            <div class="hp-text">${curHp}/${maxHp}</div>
+            ${pokeImgHtml(p)}
             ${energyHtml(p.attachedEnergy)}
-            ${abilityBadgeHtml(p, isPlayer)}
           </div>
         </div>`;
     }).join("");
@@ -948,12 +938,6 @@ const ui = (() => {
       const ts = TYPE_STYLE[e.type] || TYPE_STYLE["無"];
       return `<div class="energy-pip" title="${e.type}" style="background:${ts.bg};color:${ts.color}">${ts.icon}</div>`;
     }).join("")}</div>`;
-  }
-
-  function abilityBadgeHtml(pokemon, isPlayer) {
-    if (!pokemon.ability || pokemon.ability.trigger !== "once_per_turn") return "";
-    const used = pokemon.abilityUsedThisTurn;
-    return `<div class="ability-badge ${used?'used':''}">?${pokemon.ability.name}</div>`;
   }
 
   // ── 手札 ──
